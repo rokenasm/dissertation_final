@@ -313,8 +313,8 @@ class TestJointTapeCalc:
         # horizontal joints: ceil(2.4/2.4) - 1 = 0
         # total net = 7.2 m, 10% waste = 7.92 m → ceil(7.92/150) = 1 roll
         result = joint_tape_calc(4.0, 2.4, sides=1, layers=1, waste_pct=10.0)
-        assert result.pieces_required == 1
-        assert result.total_linear_m == pytest.approx(7.2 * 1.10, rel=1e-3)
+        assert result.rolls == 1
+        assert result.tape_m == pytest.approx(7.2 * 1.10, rel=1e-3)
 
     def test_wall_taller_than_one_board_adds_horizontal_joints(self):
         # 4 m × 3.0 m → vertical joints = 3 (same), horizontal joint rows = 1
@@ -322,21 +322,21 @@ class TestJointTapeCalc:
         # horizontal tape = 1 × 4.0 = 4.0 m
         # total net = 13.0 m, 0% waste → 1 roll
         result = joint_tape_calc(4.0, 3.0, sides=1, layers=1, waste_pct=0.0)
-        assert result.total_linear_m == pytest.approx(13.0)
-        assert result.pieces_required == 1
+        assert result.tape_m == pytest.approx(13.0)
+        assert result.rolls == 1
 
     def test_double_sided_doubles_tape(self):
         single = joint_tape_calc(4.0, 2.4, sides=1, waste_pct=0.0)
         double = joint_tape_calc(4.0, 2.4, sides=2, waste_pct=0.0)
-        assert double.total_linear_m == pytest.approx(single.total_linear_m * 2)
+        assert double.tape_m == pytest.approx(single.tape_m * 2)
 
     def test_wall_exact_one_board_wide_has_no_joints(self):
         # 1.2 m wide wall → ceil(1.2/1.2) = 1 column → 0 vertical joints
         # 2.4 m high → 0 horizontal joints
         # total = 0 m → 0 rolls
         result = joint_tape_calc(1.2, 2.4, sides=1, waste_pct=0.0)
-        assert result.total_linear_m == pytest.approx(0.0)
-        assert result.pieces_required == 0
+        assert result.tape_m == pytest.approx(0.0)
+        assert result.rolls == 0
 
     def test_zero_length_raises(self):
         with pytest.raises(ValueError, match="length"):
@@ -353,23 +353,20 @@ class TestEasifillCalc:
         # net = 9.6 m², 1 side, 1 layer, 10% waste
         # total boarding = 9.6 m², with waste = 10.56 m²
         # bags = ceil(10.56 / 40) = 1
-        result = easifill_calc(net_area_m2=9.6, sides=1, layers=1, waste_pct=10.0)
-        assert result.sheets_required == 1
+        assert easifill_calc(net_area_m2=9.6, sides=1, layers=1, waste_pct=10.0) == 1
 
     def test_exact_coverage_no_waste(self):
         # Exactly 40 m² at 0% waste → 1 bag
-        result = easifill_calc(net_area_m2=EASIFILL_COVERAGE_M2, sides=1, layers=1, waste_pct=0.0)
-        assert result.sheets_required == 1
+        assert easifill_calc(net_area_m2=EASIFILL_COVERAGE_M2, sides=1, layers=1, waste_pct=0.0) == 1
 
     def test_just_over_one_bag_needs_two(self):
-        result = easifill_calc(net_area_m2=40.01, sides=1, layers=1, waste_pct=0.0)
-        assert result.sheets_required == 2
+        assert easifill_calc(net_area_m2=40.01, sides=1, layers=1, waste_pct=0.0) == 2
 
     def test_double_sided_needs_more_bags(self):
         # 25 m² single = 25 m² total → 1 bag; double = 50 m² total → 2 bags
         single = easifill_calc(net_area_m2=25.0, sides=1, layers=1, waste_pct=0.0)
         double = easifill_calc(net_area_m2=25.0, sides=2, layers=1, waste_pct=0.0)
-        assert double.sheets_required > single.sheets_required
+        assert double > single
 
     def test_zero_area_raises(self):
         with pytest.raises(ValueError, match="area"):

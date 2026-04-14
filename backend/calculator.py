@@ -89,7 +89,7 @@ class WallInput:
     """All inputs describing a single wall run."""
     length: float                               # metres
     height: float                               # metres
-    openings: list = field(default_factory=list)  # list[Opening]
+    openings: list[Opening] = field(default_factory=list)
     stud_spacing_mm: int = 600                  # 300 or 600
     sides: int = 1                              # 1 (single-sided) or 2 (double-sided)
     layers: int = 1                             # board layers per side
@@ -142,6 +142,12 @@ class ScrewsResult:
     total_screws: int
 
 
+@dataclass
+class JointTapeResult:
+    rolls: int          # number of 150 m rolls
+    tape_m: float       # total metres of tape including waste
+
+
 # ---------------------------------------------------------------------------
 # Customer-facing output types
 # ---------------------------------------------------------------------------
@@ -186,7 +192,7 @@ class ProjectTotals:
 
 @dataclass
 class ProjectResult:
-    walls: list          # list[WallEstimate]
+    walls: list[WallEstimate]
     totals: ProjectTotals
 
 
@@ -194,7 +200,7 @@ class ProjectResult:
 # Core calculation functions
 # ---------------------------------------------------------------------------
 
-def wall_areas(length: float, height: float, openings: list) -> AreaResult:
+def wall_areas(length: float, height: float, openings: list[Opening]) -> AreaResult:
     """
     Calculate gross, openings, and net wall areas.
 
@@ -277,7 +283,7 @@ def stud_calc(
     length: float,
     height: float,
     stud_spacing_mm: int = 600,
-    openings: list = None,
+    openings: list[Opening] = None,
     waste_pct: float = 5.0,
 ) -> StudResult:
     """
@@ -476,7 +482,7 @@ def joint_tape_calc(
     sides: int = 1,
     layers: int = 1,
     waste_pct: float = 10.0,
-) -> TrackResult:
+) -> JointTapeResult:
     """
     Calculate Gyproc Joint Tape rolls required.
 
@@ -499,7 +505,7 @@ def joint_tape_calc(
         waste_pct: Waste allowance as a percentage.
 
     Returns:
-        TrackResult (reused — total_linear_m = tape metres, pieces_required = rolls).
+        JointTapeResult with rolls and total tape metres (including waste).
     """
     if length <= 0:
         raise ValueError(f"Wall length must be positive, got {length}")
@@ -518,12 +524,11 @@ def joint_tape_calc(
     horizontal_tape_m = horizontal_joint_rows * length
 
     total_tape_m = (vertical_tape_m + horizontal_tape_m) * sides * layers
-    total_with_waste = total_tape_m * (1 + waste_pct / 100)
-    rolls = math.ceil(total_with_waste / JOINT_TAPE_ROLL_M)
+    tape_with_waste = round(total_tape_m * (1 + waste_pct / 100), 4)
 
-    return TrackResult(
-        total_linear_m=round(total_with_waste, 4),
-        pieces_required=rolls,
+    return JointTapeResult(
+        rolls=math.ceil(tape_with_waste / JOINT_TAPE_ROLL_M),
+        tape_m=tape_with_waste,
     )
 
 
@@ -532,7 +537,7 @@ def easifill_calc(
     sides: int = 1,
     layers: int = 1,
     waste_pct: float = 10.0,
-) -> BoardResult:
+) -> int:
     """
     Calculate Gyproc EasiFill 60 bags required (10 kg bags).
 
@@ -549,7 +554,7 @@ def easifill_calc(
         waste_pct:   Waste allowance as a percentage.
 
     Returns:
-        BoardResult (reused — sheets_required = number of 10 kg bags).
+        Number of 10 kg bags required.
     """
     if net_area_m2 <= 0:
         raise ValueError(f"Net area must be positive, got {net_area_m2}")
@@ -557,9 +562,8 @@ def easifill_calc(
         raise ValueError(f"Waste percentage cannot be negative, got {waste_pct}")
 
     total_boarding_m2 = net_area_m2 * sides * layers
-    bags = math.ceil(total_boarding_m2 * (1 + waste_pct / 100) / EASIFILL_COVERAGE_M2)
 
-    return BoardResult(sheets_required=bags)
+    return math.ceil(total_boarding_m2 * (1 + waste_pct / 100) / EASIFILL_COVERAGE_M2)
 
 
 # ---------------------------------------------------------------------------
@@ -620,7 +624,7 @@ def estimate_wall(wall: WallInput, wall_index: int = 0) -> WallEstimate:
         waste_pct=wall.framing_screw_waste_pct,
     )
 
-    tape = joint_tape_calc(
+    tape_rolls = joint_tape_calc(
         length=wall.length,
         height=wall.height,
         sides=wall.sides,
@@ -628,7 +632,7 @@ def estimate_wall(wall: WallInput, wall_index: int = 0) -> WallEstimate:
         waste_pct=wall.joint_tape_waste_pct,
     )
 
-    easifill = easifill_calc(
+    easifill_bags = easifill_calc(
         net_area_m2=areas.net_m2,
         sides=wall.sides,
         layers=wall.layers,
@@ -648,8 +652,8 @@ def estimate_wall(wall: WallInput, wall_index: int = 0) -> WallEstimate:
         insulation_packs=insulation_packs,
         screws=screws.total_screws,
         framing_screws=framing.total_screws,
-        joint_tape_rolls=tape.pieces_required,
-        easifill_bags=easifill.sheets_required,
+        joint_tape_rolls=tape_rolls.rolls,
+        easifill_bags=easifill_bags,
     )
 
 
@@ -657,7 +661,7 @@ def estimate_wall(wall: WallInput, wall_index: int = 0) -> WallEstimate:
 # Project-level estimator
 # ---------------------------------------------------------------------------
 
-def estimate_project(walls: list) -> ProjectResult:
+def estimate_project(walls: list[WallInput]) -> ProjectResult:
     """
     Run a full material estimate for a list of wall runs.
 
