@@ -423,10 +423,78 @@ input[type="checkbox"] {
   font-variant-numeric: tabular-nums;
 }
 
+.material-label {
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+.price-cell {
+  white-space: nowrap;
+}
+
+.price-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.currency {
+  font-size: 0.85rem;
+  color: #555;
+}
+
+.price-input {
+  width: 70px;
+  padding: 0.3rem 0.4rem;
+  border: 1.5px solid #dde3ec;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  text-align: right;
+  background: #f8fafc;
+  color: #1a1a2e;
+  transition: border-color 0.15s;
+}
+
+.price-input:focus {
+  outline: none;
+  border-color: #1b4f9c;
+  background: #fff;
+}
+
+.price-unit {
+  font-size: 0.75rem;
+  color: #999;
+  white-space: nowrap;
+}
+
 .total-col {
   background: #f0f4f8;
   font-weight: 600;
   color: #1b4f9c;
+  white-space: nowrap;
+}
+
+.grand-total-row td {
+  border-top: 2px solid #1b4f9c;
+  padding-top: 0.85rem;
+  padding-bottom: 0.85rem;
+}
+
+.grand-total-label {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #1a1a2e;
+  text-align: right;
+  padding-right: 1rem;
+}
+
+.grand-total-value {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #1b4f9c;
+  background: #e8f0fb;
+  border-radius: 0 0 6px 6px;
+  white-space: nowrap;
 }
 
 .results-note {

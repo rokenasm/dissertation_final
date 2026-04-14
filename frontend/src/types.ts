@@ -57,3 +57,14 @@ export interface EstimateResponse {
   walls: WallEstimate[];
   totals: ProjectTotals;
 }
+
+export interface MaterialPrices {
+  board_per_sheet: number;
+  stud_per_piece: number;
+  track_per_length: number;
+  insulation_per_pack: number;
+  screws_per_100: number;
+  framing_screws_per_100: number;
+  joint_tape_per_roll: number;
+  easifill_per_bag: number;
+}

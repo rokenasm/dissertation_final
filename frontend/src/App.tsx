@@ -1,6 +1,7 @@
 import { useState } from "react";
-import type { Persona, WallFormData, EstimateResponse } from "./types";
+import type { Persona, WallFormData, EstimateResponse, MaterialPrices } from "./types";
 import { PERSONA_DEFAULTS } from "./personas";
+import { DEFAULT_PRICES } from "./prices";
 import { fetchEstimate } from "./api";
 import PersonaToggle from "./components/PersonaToggle";
 import WallCard from "./components/WallCard";
@@ -14,6 +15,7 @@ function newWall(persona: Persona): WallFormData {
 export default function App() {
   const [persona, setPersona] = useState<Persona>("trade");
   const [walls, setWalls] = useState<WallFormData[]>([newWall("trade")]);
+  const [prices, setPrices] = useState<MaterialPrices>(DEFAULT_PRICES);
   const [result, setResult] = useState<EstimateResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -41,6 +43,10 @@ export default function App() {
     setWalls((prev) => prev.filter((_, i) => i !== index));
     setResult(null);
     setError(null);
+  }
+
+  function handlePriceChange(key: keyof MaterialPrices, value: number) {
+    setPrices((prev) => ({ ...prev, [key]: value }));
   }
 
   async function handleCalculate(e: React.FormEvent) {
@@ -95,7 +101,12 @@ export default function App() {
         {error && <p className="error-msg">{error}</p>}
 
         {result && (
-          <ResultsTable walls={result.walls} totals={result.totals} />
+          <ResultsTable
+            walls={result.walls}
+            totals={result.totals}
+            prices={prices}
+            onPriceChange={handlePriceChange}
+          />
         )}
       </main>
     </div>
