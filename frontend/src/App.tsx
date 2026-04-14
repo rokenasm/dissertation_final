@@ -3,41 +3,56 @@ import type { Persona, WallFormData, EstimateResponse } from "./types";
 import { PERSONA_DEFAULTS } from "./personas";
 import { fetchEstimate } from "./api";
 import PersonaToggle from "./components/PersonaToggle";
-import WallForm from "./components/WallForm";
+import WallCard from "./components/WallCard";
 import ResultsTable from "./components/ResultsTable";
 import "./App.css";
 
-function defaultWall(persona: Persona): WallFormData {
-  return {
-    length: "",
-    height: "",
-    ...PERSONA_DEFAULTS[persona],
-  };
+function newWall(persona: Persona): WallFormData {
+  return { length: "", height: "", ...PERSONA_DEFAULTS[persona] };
 }
 
 export default function App() {
   const [persona, setPersona] = useState<Persona>("trade");
-  const [wall, setWall] = useState<WallFormData>(defaultWall("trade"));
+  const [walls, setWalls] = useState<WallFormData[]>([newWall("trade")]);
   const [result, setResult] = useState<EstimateResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   function handlePersonaChange(p: Persona) {
     setPersona(p);
-    setWall((prev) => ({ ...PERSONA_DEFAULTS[p], length: prev.length, height: prev.height }));
+    setWalls((prev) =>
+      prev.map((w) => ({ ...PERSONA_DEFAULTS[p], length: w.length, height: w.height }))
+    );
     setResult(null);
     setError(null);
   }
 
-  async function handleCalculate() {
+  function updateWall(index: number, data: WallFormData) {
+    setWalls((prev) => prev.map((w, i) => (i === index ? data : w)));
+  }
+
+  function addWall() {
+    setWalls((prev) => [...prev, newWall(persona)]);
+    setResult(null);
+    setError(null);
+  }
+
+  function removeWall(index: number) {
+    setWalls((prev) => prev.filter((_, i) => i !== index));
+    setResult(null);
+    setError(null);
+  }
+
+  async function handleCalculate(e: React.FormEvent) {
+    e.preventDefault();
     setError(null);
     setResult(null);
     setLoading(true);
     try {
-      const data = await fetchEstimate(wall);
+      const data = await fetchEstimate(walls);
       setResult(data);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -51,22 +66,36 @@ export default function App() {
       </header>
 
       <main className="app-main">
-        <section className="form-section">
-          <PersonaToggle value={persona} onChange={handlePersonaChange} />
-          <WallForm
-            data={wall}
-            onChange={setWall}
-            onSubmit={handleCalculate}
-            loading={loading}
-          />
-        </section>
+        <PersonaToggle value={persona} onChange={handlePersonaChange} />
+
+        <form onSubmit={handleCalculate}>
+          <div className="walls-list">
+            {walls.map((wall, i) => (
+              <WallCard
+                key={i}
+                index={i}
+                total={walls.length}
+                data={wall}
+                onChange={(data) => updateWall(i, data)}
+                onRemove={() => removeWall(i)}
+              />
+            ))}
+          </div>
+
+          <div className="form-actions">
+            <button type="button" className="add-wall-btn" onClick={addWall}>
+              + Add wall
+            </button>
+            <button type="submit" className="calculate-btn" disabled={loading}>
+              {loading ? "Calculating…" : "Calculate"}
+            </button>
+          </div>
+        </form>
 
         {error && <p className="error-msg">{error}</p>}
 
         {result && (
-          <section className="results-section">
-            <ResultsTable totals={result.totals} />
-          </section>
+          <ResultsTable walls={result.walls} totals={result.totals} />
         )}
       </main>
     </div>

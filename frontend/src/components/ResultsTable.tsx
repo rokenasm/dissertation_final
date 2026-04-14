@@ -1,75 +1,79 @@
-import type { ProjectTotals } from "../types";
+import type { WallEstimate, ProjectTotals } from "../types";
 
 interface Props {
+  walls: WallEstimate[];
   totals: ProjectTotals;
 }
 
 interface Row {
   label: string;
   product: string;
-  qty: number;
   unit: string;
+  perWall: (w: WallEstimate) => string;
+  total: (t: ProjectTotals) => string;
 }
 
-function buildRows(t: ProjectTotals): Row[] {
-  return [
-    {
-      label: "Plasterboard",
-      product: "Gyproc WallBoard 12.5mm (1200 × 2400 mm)",
-      qty: t.boards,
-      unit: "sheets",
-    },
-    {
-      label: "Studs",
-      product: "Gypframe 48 S 50 'C' Stud",
-      qty: t.studs_pieces,
-      unit: `pieces (${t.studs_linear_m} m)`,
-    },
-    {
-      label: "Track",
-      product: "Gypframe 50 FEC 50 Channel (3600 mm)",
-      qty: t.track_pieces,
-      unit: `lengths (${t.track_linear_m} m)`,
-    },
-    ...(t.insulation_packs > 0
-      ? [
-          {
-            label: "Insulation",
-            product: "Isover APR 1200 50mm",
-            qty: t.insulation_packs,
-            unit: "packs",
-          },
-        ]
-      : []),
-    {
-      label: "Board screws",
-      product: "BG Drywall Screws 25mm",
-      qty: t.screws,
-      unit: "screws",
-    },
-    {
-      label: "Framing screws",
-      product: "BG Wafer Head Screws 13mm",
-      qty: t.framing_screws,
-      unit: "screws",
-    },
-    {
-      label: "Joint tape",
-      product: "Gyproc Joint Tape 150m",
-      qty: t.joint_tape_rolls,
-      unit: "rolls",
-    },
-    {
-      label: "Jointing compound",
-      product: "Gyproc EasiFill 60 (10 kg)",
-      qty: t.easifill_bags,
-      unit: "bags",
-    },
-  ];
-}
+const ROWS: Row[] = [
+  {
+    label: "Plasterboard",
+    product: "Gyproc WallBoard 12.5mm",
+    unit: "sheets",
+    perWall: (w) => `${w.boards}`,
+    total: (t) => `${t.boards}`,
+  },
+  {
+    label: "Studs",
+    product: "Gypframe 48 S 50 'C' Stud",
+    unit: "pieces",
+    perWall: (w) => `${w.studs_pieces} (${w.studs_linear_m} m)`,
+    total: (t) => `${t.studs_pieces} (${t.studs_linear_m} m)`,
+  },
+  {
+    label: "Track",
+    product: "Gypframe 50 FEC 50 Channel",
+    unit: "lengths",
+    perWall: (w) => `${w.track_pieces} (${w.track_linear_m} m)`,
+    total: (t) => `${t.track_pieces} (${t.track_linear_m} m)`,
+  },
+  {
+    label: "Insulation",
+    product: "Isover APR 1200 50mm",
+    unit: "packs",
+    perWall: (w) => (w.insulation_packs > 0 ? `${w.insulation_packs}` : "—"),
+    total: (t) => (t.insulation_packs > 0 ? `${t.insulation_packs}` : "—"),
+  },
+  {
+    label: "Board screws",
+    product: "BG Drywall Screws 25mm",
+    unit: "screws",
+    perWall: (w) => `${w.screws}`,
+    total: (t) => `${t.screws}`,
+  },
+  {
+    label: "Framing screws",
+    product: "BG Wafer Head Screws 13mm",
+    unit: "screws",
+    perWall: (w) => `${w.framing_screws}`,
+    total: (t) => `${t.framing_screws}`,
+  },
+  {
+    label: "Joint tape",
+    product: "Gyproc Joint Tape 150m",
+    unit: "rolls",
+    perWall: (w) => `${w.joint_tape_rolls}`,
+    total: (t) => `${t.joint_tape_rolls}`,
+  },
+  {
+    label: "Jointing compound",
+    product: "Gyproc EasiFill 60 (10 kg)",
+    unit: "bags",
+    perWall: (w) => `${w.easifill_bags}`,
+    total: (t) => `${t.easifill_bags}`,
+  },
+];
 
-export default function ResultsTable({ totals }: Props) {
-  const rows = buildRows(totals);
+export default function ResultsTable({ walls, totals }: Props) {
+  const multiWall = walls.length > 1;
 
   return (
     <div className="results">
@@ -79,16 +83,20 @@ export default function ResultsTable({ totals }: Props) {
           <tr>
             <th>Material</th>
             <th>Product</th>
-            <th>Quantity</th>
+            {multiWall && walls.map((_, i) => <th key={i}>Wall {i + 1}</th>)}
+            <th>{multiWall ? "Total" : "Quantity"}</th>
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
+          {ROWS.map((row) => (
             <tr key={row.label}>
               <td>{row.label}</td>
               <td className="product-name">{row.product}</td>
-              <td className="qty">
-                <strong>{row.qty}</strong> {row.unit}
+              {multiWall && walls.map((w, i) => (
+                <td key={i} className="qty">{row.perWall(w)}</td>
+              ))}
+              <td className="qty total-col">
+                <strong>{row.total(totals)}</strong>
               </td>
             </tr>
           ))}

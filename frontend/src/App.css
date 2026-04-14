@@ -40,6 +40,69 @@ body {
   gap: 2rem;
 }
 
+/* ── Wall cards ── */
+
+.walls-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.wall-card {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 1.25rem;
+}
+
+.wall-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.wall-label {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.remove-wall-btn {
+  padding: 0.25rem 0.6rem;
+  background: none;
+  border: 1px solid #bbb;
+  border-radius: 3px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  color: #666;
+}
+
+.remove-wall-btn:hover {
+  background: #fee;
+  border-color: #c00;
+  color: #c00;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.add-wall-btn {
+  padding: 0.75rem 1.5rem;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.add-wall-btn:hover {
+  background: #f0f0f0;
+}
+
 /* ── Persona toggle ── */
 
 .persona-toggle {
@@ -282,6 +345,10 @@ fieldset legend {
 
 .qty strong {
   font-size: 1.05rem;
+}
+
+.total-col {
+  background: #f0f0f0;
 }
 
 .results-note {

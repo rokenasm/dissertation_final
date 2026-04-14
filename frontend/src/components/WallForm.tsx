@@ -4,11 +4,9 @@ import type { WallFormData, Opening } from "../types";
 interface Props {
   data: WallFormData;
   onChange: (data: WallFormData) => void;
-  onSubmit: () => void;
-  loading: boolean;
 }
 
-export default function WallForm({ data, onChange, onSubmit, loading }: Props) {
+export default function WallForm({ data, onChange }: Props) {
   const [openingInput, setOpeningInput] = useState({ width: "", height: "" });
 
   function set<K extends keyof WallFormData>(key: K, value: WallFormData[K]) {
@@ -28,13 +26,8 @@ export default function WallForm({ data, onChange, onSubmit, loading }: Props) {
     onChange({ ...data, openings: data.openings.filter((_, i) => i !== index) });
   }
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    onSubmit();
-  }
-
   return (
-    <form className="wall-form" onSubmit={handleSubmit}>
+    <div className="wall-form">
       <div className="form-row">
         <label>
           Length (m)
@@ -67,7 +60,7 @@ export default function WallForm({ data, onChange, onSubmit, loading }: Props) {
             <label key={s} className="inline-label">
               <input
                 type="radio"
-                name="stud_spacing"
+                name={`stud_spacing_${data.length}_${data.height}`}
                 value={s}
                 checked={data.stud_spacing_mm === s}
                 onChange={() => set("stud_spacing_mm", s)}
@@ -83,7 +76,7 @@ export default function WallForm({ data, onChange, onSubmit, loading }: Props) {
             <label key={s} className="inline-label">
               <input
                 type="radio"
-                name="sides"
+                name={`sides_${data.length}_${data.height}`}
                 value={s}
                 checked={data.sides === s}
                 onChange={() => set("sides", s)}
@@ -139,10 +132,6 @@ export default function WallForm({ data, onChange, onSubmit, loading }: Props) {
           </button>
         </div>
       </div>
-
-      <button type="submit" className="calculate-btn" disabled={loading}>
-        {loading ? "Calculating…" : "Calculate"}
-      </button>
-    </form>
+    </div>
   );
 }
