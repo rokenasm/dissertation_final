@@ -13,14 +13,16 @@ export default function WallCard({ index, total, data, onChange, onRemove }: Pro
   return (
     <div className="wall-card">
       <div className="wall-card-header">
-        <span className="wall-label">Wall {index + 1}</span>
+        <span className="wall-label">
+          Wall {index + 1}{data.label ? ` — ${data.label}` : ""}
+        </span>
         {total > 1 && (
           <button type="button" className="remove-wall-btn" onClick={onRemove}>
             Remove
           </button>
         )}
       </div>
-      <WallForm data={data} onChange={onChange} />
+      <WallForm data={data} onChange={onChange} wallIndex={index} />
     </div>
   );
 }

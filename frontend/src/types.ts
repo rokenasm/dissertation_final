@@ -6,6 +6,7 @@ export interface Opening {
 }
 
 export interface WallFormData {
+  label: string;
   length: string;
   height: string;
   stud_spacing_mm: 300 | 600;

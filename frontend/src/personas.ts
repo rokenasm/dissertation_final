@@ -1,8 +1,9 @@
 import type { Persona, WallFormData } from "./types";
 
 const BASE: Omit<WallFormData, "length" | "height"> = {
+  label: "",
   stud_spacing_mm: 600,
-  sides: 1,
+  sides: 2,
   layers: 1,
   insulated: false,
   openings: [],

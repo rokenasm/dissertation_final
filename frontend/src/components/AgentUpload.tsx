@@ -1,58 +1,39 @@
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import type { AgentAnalysisResult, DetectedWall } from "../types";
-import { analyseFloorPlan } from "../api";
 
 interface Props {
+  file: File | null;
+  preview: string | null;
+  loading: boolean;
+  result: AgentAnalysisResult | null;
+  error: string | null;
+  onFileChange: (file: File, preview: string) => void;
+  onAnalyse: () => void;
   onWallsDetected: (walls: DetectedWall[]) => void;
 }
 
-export default function AgentUpload({ onWallsDetected }: Props) {
+export default function AgentUpload({
+  file, preview, loading, result, error,
+  onFileChange, onAnalyse, onWallsDetected,
+}: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [preview, setPreview] = useState<string | null>(null);
-  const [file, setFile] = useState<File | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<AgentAnalysisResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f) return;
-    setFile(f);
-    setResult(null);
-    setError(null);
-    setPreview(URL.createObjectURL(f));
-  }
-
-  async function handleAnalyse() {
-    if (!file) return;
-    setError(null);
-    setResult(null);
-    setLoading(true);
-    try {
-      const data = await analyseFloorPlan(file);
-      setResult(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Analysis failed");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function handleUseWalls() {
-    if (result) onWallsDetected(result.walls);
+    onFileChange(f, URL.createObjectURL(f));
   }
 
   return (
     <div className="agent-upload">
-      <div className="upload-area" onClick={() => inputRef.current?.click()}>
+      <div
+        className="upload-area"
+        onClick={() => { if (!preview || file?.type !== "application/pdf") inputRef.current?.click(); }}
+      >
         {preview && file?.type !== "application/pdf" ? (
           <img src={preview} alt="Floor plan preview" className="upload-preview" />
-        ) : file?.type === "application/pdf" ? (
-          <div className="upload-placeholder">
-            <span className="upload-icon">📄</span>
-            <p>{file.name}</p>
-            <p className="upload-hint">PDF ready to analyse</p>
-          </div>
+        ) : preview && file?.type === "application/pdf" ? (
+          <iframe src={preview} className="upload-pdf-preview" title="Floor plan PDF" />
         ) : (
           <div className="upload-placeholder">
             <span className="upload-icon">📐</span>
@@ -69,10 +50,17 @@ export default function AgentUpload({ onWallsDetected }: Props) {
         />
       </div>
 
-      {file && !loading && !result && (
-        <button className="analyse-btn" onClick={handleAnalyse}>
-          Analyse with AI
-        </button>
+      {file && (
+        <div className="upload-actions">
+          <button type="button" className="change-file-btn" onClick={() => inputRef.current?.click()}>
+            Change file
+          </button>
+          {!loading && !result && (
+            <button className="analyse-btn" onClick={onAnalyse}>
+              Analyse with AI
+            </button>
+          )}
+        </div>
       )}
 
       {loading && (
@@ -117,9 +105,9 @@ export default function AgentUpload({ onWallsDetected }: Props) {
                 </tbody>
               </table>
               <p className="agent-override-note">
-                Review the detected walls above. Click below to load them into the estimator where you can edit any values before calculating.
+                Review the detected walls above. Height defaults to 2.4m (standard UK ceiling height) — adjust if known from an elevation or section drawing. Click below to load into the estimator where you can edit any values before calculating.
               </p>
-              <button className="use-walls-btn" onClick={handleUseWalls}>
+              <button className="use-walls-btn" onClick={() => onWallsDetected(result.walls)}>
                 Use these walls →
               </button>
             </>

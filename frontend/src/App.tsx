@@ -1,8 +1,8 @@
 import { useState } from "react";
-import type { Persona, WallFormData, EstimateResponse, MaterialPrices, DetectedWall } from "./types";
+import type { Persona, WallFormData, EstimateResponse, MaterialPrices, DetectedWall, AgentAnalysisResult } from "./types";
 import { PERSONA_DEFAULTS } from "./personas";
 import { DEFAULT_PRICES } from "./prices";
-import { fetchEstimate } from "./api";
+import { fetchEstimate, analyseFloorPlan } from "./api";
 import PersonaToggle from "./components/PersonaToggle";
 import WallCard from "./components/WallCard";
 import ResultsTable from "./components/ResultsTable";
@@ -12,12 +12,13 @@ import "./App.css";
 type Mode = "manual" | "agent";
 
 function newWall(persona: Persona): WallFormData {
-  return { length: "", height: "", ...PERSONA_DEFAULTS[persona] };
+  return { label: "", length: "", height: "", ...PERSONA_DEFAULTS[persona] };
 }
 
 function detectedToWallForm(detected: DetectedWall, persona: Persona): WallFormData {
   return {
     ...PERSONA_DEFAULTS[persona],
+    label: detected.label,
     length: String(detected.length),
     height: String(detected.height),
     openings: detected.openings.map((o) => ({ width: o.width, height: o.height })),
@@ -32,6 +33,13 @@ export default function App() {
   const [result, setResult] = useState<EstimateResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Agent state — kept here so it persists when switching between tabs
+  const [agentFile, setAgentFile] = useState<File | null>(null);
+  const [agentPreview, setAgentPreview] = useState<string | null>(null);
+  const [agentLoading, setAgentLoading] = useState(false);
+  const [agentResult, setAgentResult] = useState<AgentAnalysisResult | null>(null);
+  const [agentError, setAgentError] = useState<string | null>(null);
 
   function handlePersonaChange(p: Persona) {
     setPersona(p);
@@ -66,6 +74,28 @@ export default function App() {
 
   function handlePriceChange(key: keyof MaterialPrices, value: number) {
     setPrices((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function handleAgentFileChange(file: File, preview: string) {
+    setAgentFile(file);
+    setAgentPreview(preview);
+    setAgentResult(null);
+    setAgentError(null);
+  }
+
+  async function handleAgentAnalyse() {
+    if (!agentFile) return;
+    setAgentError(null);
+    setAgentResult(null);
+    setAgentLoading(true);
+    try {
+      const data = await analyseFloorPlan(agentFile);
+      setAgentResult(data);
+    } catch (err) {
+      setAgentError(err instanceof Error ? err.message : "Analysis failed");
+    } finally {
+      setAgentLoading(false);
+    }
   }
 
   function handleWallsDetected(detected: DetectedWall[]) {
@@ -121,7 +151,16 @@ export default function App() {
               <h2>AI Floor Plan Analysis</h2>
               <p>Upload a floor plan image and the AI will detect partition walls and estimate their dimensions automatically. You can review and edit the results before calculating.</p>
             </div>
-            <AgentUpload onWallsDetected={handleWallsDetected} />
+            <AgentUpload
+              file={agentFile}
+              preview={agentPreview}
+              loading={agentLoading}
+              result={agentResult}
+              error={agentError}
+              onFileChange={handleAgentFileChange}
+              onAnalyse={handleAgentAnalyse}
+              onWallsDetected={handleWallsDetected}
+            />
           </div>
         ) : (
           <>

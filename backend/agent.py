@@ -1,8 +1,8 @@
 """
-agent.py — AI floor plan analysis agent using Google Gemini vision.
+agent.py — AI floor plan analysis agent using Claude vision (Anthropic).
 
-Accepts a floor plan image, sends it to Gemini with a structured prompt,
-and returns a list of detected walls with estimated dimensions.
+Accepts a floor plan image or PDF, sends it to Claude with a structured prompt,
+and returns a list of detected partition walls with estimated dimensions.
 The user can review and edit these before running the material calculator.
 """
 
@@ -10,9 +10,10 @@ import os
 import io
 import json
 import re
+import base64
 from pathlib import Path
-from google import genai
-from google.genai import types
+
+import anthropic
 from pdf2image import convert_from_bytes
 
 
@@ -30,13 +31,12 @@ def _load_env():
 
 _load_env()
 
-GEMINI_MODEL = "gemini-2.0-flash"
+CLAUDE_MODEL = "claude-sonnet-4-6"
 
 # Poppler binary path — required on Windows for PDF conversion
 POPPLER_PATH = r"C:\Users\roken\Downloads\Release-25.12.0-0\poppler-25.12.0\Library\bin"
 
-ANALYSIS_PROMPT = """
-You are an experienced drylining estimator analysing a construction floor plan or elevation drawing.
+ANALYSIS_PROMPT = """You are an experienced drylining estimator analysing a construction floor plan or elevation drawing.
 
 Your task is to identify all partition walls suitable for drylining (metal stud and plasterboard).
 Do NOT include structural concrete or masonry walls — only lightweight partition walls.
@@ -70,13 +70,14 @@ Return ONLY a valid JSON object in this exact format, with no other text before 
 }
 
 If no partition walls are detectable, return:
-{"walls": [], "scale_detected": "unknown", "notes": "reason why no walls were detected"}
-"""
+{"walls": [], "scale_detected": "unknown", "notes": "reason why no walls were detected"}"""
 
 
 def pdf_to_image_bytes(pdf_bytes: bytes) -> bytes:
     """Convert the first page of a PDF to JPEG bytes."""
-    pages = convert_from_bytes(pdf_bytes, dpi=150, first_page=1, last_page=1, poppler_path=POPPLER_PATH)
+    pages = convert_from_bytes(
+        pdf_bytes, dpi=150, first_page=1, last_page=1, poppler_path=POPPLER_PATH
+    )
     buf = io.BytesIO()
     pages[0].save(buf, format="JPEG", quality=90)
     return buf.getvalue()
@@ -84,11 +85,11 @@ def pdf_to_image_bytes(pdf_bytes: bytes) -> bytes:
 
 def analyse_floor_plan(image_bytes: bytes, mime_type: str) -> dict:
     """
-    Send a floor plan image to Gemini and extract wall dimensions.
+    Send a floor plan image to Claude and extract wall dimensions.
 
     Args:
         image_bytes: Raw image data.
-        mime_type:   MIME type e.g. "image/jpeg", "image/png", "image/pdf".
+        mime_type:   MIME type e.g. "image/jpeg", "image/png", "application/pdf".
 
     Returns:
         Dict with keys: walls, scale_detected, notes.
@@ -96,35 +97,53 @@ def analyse_floor_plan(image_bytes: bytes, mime_type: str) -> dict:
     Raises:
         ValueError: If the API key is missing or the response cannot be parsed.
     """
-    api_key = os.getenv("GEMINI_API_KEY")
+    api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key:
-        raise ValueError("GEMINI_API_KEY not set in backend/.env")
+        raise ValueError("ANTHROPIC_API_KEY not set in backend/.env")
 
-    # Convert PDF to image before sending to Gemini
+    # Convert PDF to image before sending to Claude
     if mime_type == "application/pdf":
         image_bytes = pdf_to_image_bytes(image_bytes)
         mime_type = "image/jpeg"
 
-    client = genai.Client(api_key=api_key)
+    image_data = base64.standard_b64encode(image_bytes).decode("utf-8")
 
-    response = client.models.generate_content(
-        model=GEMINI_MODEL,
-        contents=[
-            types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
-            ANALYSIS_PROMPT,
+    client = anthropic.Anthropic(api_key=api_key)
+
+    message = client.messages.create(
+        model=CLAUDE_MODEL,
+        max_tokens=4096,
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image",
+                        "source": {
+                            "type": "base64",
+                            "media_type": mime_type,
+                            "data": image_data,
+                        },
+                    },
+                    {
+                        "type": "text",
+                        "text": ANALYSIS_PROMPT,
+                    },
+                ],
+            }
         ],
     )
 
-    raw = response.text.strip()
+    raw = message.content[0].text.strip()
 
-    # Strip markdown code fences if Gemini wraps the JSON
+    # Strip markdown code fences if Claude wraps the JSON
     raw = re.sub(r"^```(?:json)?\s*", "", raw)
     raw = re.sub(r"\s*```$", "", raw)
 
     try:
         result = json.loads(raw)
     except json.JSONDecodeError as exc:
-        raise ValueError(f"Gemini returned non-JSON response: {raw[:300]}") from exc
+        raise ValueError(f"Claude returned non-JSON response: {raw[:300]}") from exc
 
     if "walls" not in result:
         raise ValueError(f"Unexpected response structure: {raw[:300]}")

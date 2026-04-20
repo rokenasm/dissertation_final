@@ -4,9 +4,10 @@ import type { WallFormData, Opening } from "../types";
 interface Props {
   data: WallFormData;
   onChange: (data: WallFormData) => void;
+  wallIndex: number;
 }
 
-export default function WallForm({ data, onChange }: Props) {
+export default function WallForm({ data, onChange, wallIndex }: Props) {
   const [openingInput, setOpeningInput] = useState({ width: "", height: "" });
 
   function set<K extends keyof WallFormData>(key: K, value: WallFormData[K]) {
@@ -60,7 +61,7 @@ export default function WallForm({ data, onChange }: Props) {
             <label key={s} className="inline-label">
               <input
                 type="radio"
-                name={`stud_spacing_${data.length}_${data.height}`}
+                name={`stud_spacing_${wallIndex}`}
                 value={s}
                 checked={data.stud_spacing_mm === s}
                 onChange={() => set("stud_spacing_mm", s)}
@@ -76,7 +77,7 @@ export default function WallForm({ data, onChange }: Props) {
             <label key={s} className="inline-label">
               <input
                 type="radio"
-                name={`sides_${data.length}_${data.height}`}
+                name={`sides_${wallIndex}`}
                 value={s}
                 checked={data.sides === s}
                 onChange={() => set("sides", s)}
