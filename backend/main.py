@@ -1,14 +1,15 @@
 """
-main.py — FastAPI application for the Drylining Estimator (Stage 2).
+main.py — FastAPI application for the Drylining Estimator.
 
 Endpoints:
-    POST /estimate   — accepts wall runs + config, returns material totals
+    POST /estimate        — accepts wall runs + config, returns material totals
+    POST /agent/analyse   — accepts floor plan image, returns detected walls
 
 Run:
-    uvicorn backend.main:app --reload
+    uvicorn backend.main:app --reload --port 8001
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.calculator import (
@@ -17,6 +18,7 @@ from backend.calculator import (
     estimate_project,
 )
 from backend.models import EstimateRequest, EstimateResponse
+from backend.agent import analyse_floor_plan
 
 
 app = FastAPI(
@@ -46,6 +48,34 @@ app.add_middleware(
 def health_check():
     """Simple liveness check."""
     return {"status": "ok"}
+
+
+@app.post("/agent/analyse")
+async def agent_analyse(file: UploadFile = File(...)):
+    """
+    Analyse a floor plan image using Gemini vision.
+
+    Accepts a floor plan image (JPEG, PNG) and returns a list of detected
+    partition walls with estimated lengths, heights, and openings.
+    The user can review and edit these before running /estimate.
+    """
+    allowed = {"image/jpeg", "image/png", "image/webp", "application/pdf"}
+    mime = file.content_type or "image/jpeg"
+
+    if mime not in allowed:
+        raise HTTPException(
+            status_code=415,
+            detail=f"Unsupported file type '{mime}'. Upload a JPEG, PNG, or PDF.",
+        )
+
+    image_bytes = await file.read()
+
+    try:
+        result = analyse_floor_plan(image_bytes, mime)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    return result
 
 
 @app.post("/estimate", response_model=EstimateResponse)

@@ -51,6 +51,254 @@ body {
   gap: 1.5rem;
 }
 
+/* ── Mode toggle ── */
+
+.mode-toggle {
+  display: flex;
+  gap: 0;
+  border: 1.5px solid #1b4f9c;
+  border-radius: 8px;
+  overflow: hidden;
+  width: fit-content;
+}
+
+.mode-btn {
+  padding: 0.6rem 1.75rem;
+  border: none;
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #1b4f9c;
+  border-right: 1.5px solid #1b4f9c;
+  transition: background 0.15s, color 0.15s;
+}
+
+.mode-btn:last-child {
+  border-right: none;
+}
+
+.mode-btn.active {
+  background: #1b4f9c;
+  color: #fff;
+}
+
+.mode-btn:hover:not(.active) {
+  background: #e8f0fb;
+}
+
+.manual-controls {
+  display: flex;
+  align-items: center;
+}
+
+/* ── AI Agent ── */
+
+.agent-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.agent-intro h2 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1b4f9c;
+  margin-bottom: 0.4rem;
+}
+
+.agent-intro p {
+  font-size: 0.9rem;
+  color: #555;
+  line-height: 1.6;
+}
+
+.agent-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.upload-area {
+  background: #fff;
+  border: 2px dashed #b0c4de;
+  border-radius: 12px;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  overflow: hidden;
+}
+
+.upload-area:hover {
+  border-color: #1b4f9c;
+  background: #f5f8ff;
+}
+
+.upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  color: #888;
+}
+
+.upload-icon {
+  font-size: 2.5rem;
+}
+
+.upload-placeholder p {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #555;
+}
+
+.upload-hint {
+  font-size: 0.8rem !important;
+  color: #aaa !important;
+  font-weight: 400 !important;
+}
+
+.upload-preview {
+  width: 100%;
+  max-height: 360px;
+  object-fit: contain;
+  padding: 0.5rem;
+}
+
+.analyse-btn {
+  padding: 0.75rem 2rem;
+  background: #1b4f9c;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  width: fit-content;
+  transition: background 0.15s;
+}
+
+.analyse-btn:hover {
+  background: #163d7a;
+}
+
+.agent-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #555;
+  font-size: 0.9rem;
+  padding: 0.5rem 0;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #dde3ec;
+  border-top-color: #1b4f9c;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.agent-result {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.agent-result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.agent-scale {
+  font-size: 0.875rem;
+  color: #555;
+}
+
+.agent-notes {
+  font-size: 0.825rem;
+  color: #888;
+  margin-top: 0.25rem;
+  font-style: italic;
+}
+
+.walls-badge {
+  background: #e8f0fb;
+  color: #1b4f9c;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.3rem 0.75rem;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.detected-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.detected-table th {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  background: #1b4f9c;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.detected-table th:first-child { border-radius: 6px 0 0 6px; }
+.detected-table th:last-child { border-radius: 0 6px 6px 0; }
+
+.detected-table td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #f0f4f8;
+  color: #333;
+}
+
+.detected-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.agent-override-note {
+  font-size: 0.825rem;
+  color: #666;
+}
+
+.use-walls-btn {
+  padding: 0.7rem 1.75rem;
+  background: #1b4f9c;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  width: fit-content;
+  transition: background 0.15s;
+}
+
+.use-walls-btn:hover {
+  background: #163d7a;
+}
+
 /* ── Persona toggle ── */
 
 .persona-toggle {

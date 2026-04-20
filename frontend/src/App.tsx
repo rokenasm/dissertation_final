@@ -1,18 +1,31 @@
 import { useState } from "react";
-import type { Persona, WallFormData, EstimateResponse, MaterialPrices } from "./types";
+import type { Persona, WallFormData, EstimateResponse, MaterialPrices, DetectedWall } from "./types";
 import { PERSONA_DEFAULTS } from "./personas";
 import { DEFAULT_PRICES } from "./prices";
 import { fetchEstimate } from "./api";
 import PersonaToggle from "./components/PersonaToggle";
 import WallCard from "./components/WallCard";
 import ResultsTable from "./components/ResultsTable";
+import AgentUpload from "./components/AgentUpload";
 import "./App.css";
+
+type Mode = "manual" | "agent";
 
 function newWall(persona: Persona): WallFormData {
   return { length: "", height: "", ...PERSONA_DEFAULTS[persona] };
 }
 
+function detectedToWallForm(detected: DetectedWall, persona: Persona): WallFormData {
+  return {
+    ...PERSONA_DEFAULTS[persona],
+    length: String(detected.length),
+    height: String(detected.height),
+    openings: detected.openings.map((o) => ({ width: o.width, height: o.height })),
+  };
+}
+
 export default function App() {
+  const [mode, setMode] = useState<Mode>("manual");
   const [persona, setPersona] = useState<Persona>("trade");
   const [walls, setWalls] = useState<WallFormData[]>([newWall("trade")]);
   const [prices, setPrices] = useState<MaterialPrices>(DEFAULT_PRICES);
@@ -25,6 +38,12 @@ export default function App() {
     setWalls((prev) =>
       prev.map((w) => ({ ...PERSONA_DEFAULTS[p], length: w.length, height: w.height }))
     );
+    setResult(null);
+    setError(null);
+  }
+
+  function handleModeChange(m: Mode) {
+    setMode(m);
     setResult(null);
     setError(null);
   }
@@ -49,6 +68,13 @@ export default function App() {
     setPrices((prev) => ({ ...prev, [key]: value }));
   }
 
+  function handleWallsDetected(detected: DetectedWall[]) {
+    setWalls(detected.map((d) => detectedToWallForm(d, persona)));
+    setMode("manual");
+    setResult(null);
+    setError(null);
+  }
+
   async function handleCalculate(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -67,46 +93,77 @@ export default function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>Drylining Estimator</h1>
-        <p className="subtitle">GypWall Single Frame — material takeoff</p>
+        <div>
+          <h1>Drylining Estimator</h1>
+          <p className="subtitle">GypWall Single Frame — material takeoff</p>
+        </div>
       </header>
 
       <main className="app-main">
-        <PersonaToggle value={persona} onChange={handlePersonaChange} />
+        <div className="mode-toggle">
+          <button
+            className={`mode-btn${mode === "manual" ? " active" : ""}`}
+            onClick={() => handleModeChange("manual")}
+          >
+            Manual Entry
+          </button>
+          <button
+            className={`mode-btn${mode === "agent" ? " active" : ""}`}
+            onClick={() => handleModeChange("agent")}
+          >
+            AI Floor Plan
+          </button>
+        </div>
 
-        <form onSubmit={handleCalculate}>
-          <div className="walls-list">
-            {walls.map((wall, i) => (
-              <WallCard
-                key={i}
-                index={i}
-                total={walls.length}
-                data={wall}
-                onChange={(data) => updateWall(i, data)}
-                onRemove={() => removeWall(i)}
+        {mode === "agent" ? (
+          <div className="agent-section">
+            <div className="agent-intro">
+              <h2>AI Floor Plan Analysis</h2>
+              <p>Upload a floor plan image and the AI will detect partition walls and estimate their dimensions automatically. You can review and edit the results before calculating.</p>
+            </div>
+            <AgentUpload onWallsDetected={handleWallsDetected} />
+          </div>
+        ) : (
+          <>
+            <div className="manual-controls">
+              <PersonaToggle value={persona} onChange={handlePersonaChange} />
+            </div>
+
+            <form onSubmit={handleCalculate}>
+              <div className="walls-list">
+                {walls.map((wall, i) => (
+                  <WallCard
+                    key={i}
+                    index={i}
+                    total={walls.length}
+                    data={wall}
+                    onChange={(data) => updateWall(i, data)}
+                    onRemove={() => removeWall(i)}
+                  />
+                ))}
+              </div>
+
+              <div className="form-actions">
+                <button type="button" className="add-wall-btn" onClick={addWall}>
+                  + Add wall
+                </button>
+                <button type="submit" className="calculate-btn" disabled={loading}>
+                  {loading ? "Calculating…" : "Calculate"}
+                </button>
+              </div>
+            </form>
+
+            {error && <p className="error-msg">{error}</p>}
+
+            {result && (
+              <ResultsTable
+                walls={result.walls}
+                totals={result.totals}
+                prices={prices}
+                onPriceChange={handlePriceChange}
               />
-            ))}
-          </div>
-
-          <div className="form-actions">
-            <button type="button" className="add-wall-btn" onClick={addWall}>
-              + Add wall
-            </button>
-            <button type="submit" className="calculate-btn" disabled={loading}>
-              {loading ? "Calculating…" : "Calculate"}
-            </button>
-          </div>
-        </form>
-
-        {error && <p className="error-msg">{error}</p>}
-
-        {result && (
-          <ResultsTable
-            walls={result.walls}
-            totals={result.totals}
-            prices={prices}
-            onPriceChange={handlePriceChange}
-          />
+            )}
+          </>
         )}
       </main>
     </div>

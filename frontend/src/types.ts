@@ -58,6 +58,25 @@ export interface EstimateResponse {
   totals: ProjectTotals;
 }
 
+export interface DetectedOpening {
+  width: number;
+  height: number;
+  label: string;
+}
+
+export interface DetectedWall {
+  label: string;
+  length: number;
+  height: number;
+  openings: DetectedOpening[];
+}
+
+export interface AgentAnalysisResult {
+  walls: DetectedWall[];
+  scale_detected: string;
+  notes: string;
+}
+
 export interface MaterialPrices {
   board_per_sheet: number;
   stud_per_piece: number;

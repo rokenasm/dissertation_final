@@ -1,4 +1,4 @@
-import type { WallFormData, EstimateResponse } from "./types";
+import type { WallFormData, EstimateResponse, AgentAnalysisResult } from "./types";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -30,6 +30,23 @@ export async function fetchEstimate(walls: WallFormData[]): Promise<EstimateResp
   if (!response.ok) {
     const err = await response.json().catch(() => null);
     throw new Error(err?.detail?.[0]?.msg ?? `Request failed (${response.status})`);
+  }
+
+  return response.json();
+}
+
+export async function analyseFloorPlan(file: File): Promise<AgentAnalysisResult> {
+  const form = new FormData();
+  form.append("file", file);
+
+  const response = await fetch(`${API_URL}/agent/analyse`, {
+    method: "POST",
+    body: form,
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => null);
+    throw new Error(err?.detail ?? `Request failed (${response.status})`);
   }
 
   return response.json();
