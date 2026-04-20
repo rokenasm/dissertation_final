@@ -40,6 +40,8 @@ export default function App() {
   const [agentLoading, setAgentLoading] = useState(false);
   const [agentResult, setAgentResult] = useState<AgentAnalysisResult | null>(null);
   const [agentError, setAgentError] = useState<string | null>(null);
+  const [savedMsg, setSavedMsg] = useState(false);
+  const hasSaved = !!localStorage.getItem("drylining_estimate");
 
   function handlePersonaChange(p: Persona) {
     setPersona(p);
@@ -76,6 +78,43 @@ export default function App() {
     setPrices((prev) => ({ ...prev, [key]: value }));
   }
 
+  function validate(): string | null {
+    for (let i = 0; i < walls.length; i++) {
+      const w = walls[i];
+      const len = parseFloat(w.length);
+      const ht = parseFloat(w.height);
+      if (!w.length || isNaN(len) || len <= 0)
+        return `Wall ${i + 1}: enter a length greater than 0`;
+      if (!w.height || isNaN(ht) || ht <= 0)
+        return `Wall ${i + 1}: enter a height greater than 0`;
+      for (const o of w.openings) {
+        if (o.width >= len)
+          return `Wall ${i + 1}: opening width (${o.width}m) must be less than wall length (${len}m)`;
+        if (o.height >= ht)
+          return `Wall ${i + 1}: opening height (${o.height}m) must be less than wall height (${ht}m)`;
+      }
+    }
+    return null;
+  }
+
+  function saveEstimate() {
+    localStorage.setItem("drylining_estimate", JSON.stringify({ walls, prices }));
+    setSavedMsg(true);
+    setTimeout(() => setSavedMsg(false), 2000);
+  }
+
+  function loadEstimate() {
+    const raw = localStorage.getItem("drylining_estimate");
+    if (!raw) return;
+    try {
+      const { walls: savedWalls, prices: savedPrices } = JSON.parse(raw);
+      setWalls(savedWalls);
+      setPrices(savedPrices);
+      setResult(null);
+      setError(null);
+    } catch { /* ignore corrupt data */ }
+  }
+
   function handleAgentFileChange(file: File, preview: string) {
     setAgentFile(file);
     setAgentPreview(preview);
@@ -107,6 +146,8 @@ export default function App() {
 
   async function handleCalculate(e: React.FormEvent) {
     e.preventDefault();
+    const validationError = validate();
+    if (validationError) { setError(validationError); return; }
     setError(null);
     setResult(null);
     setLoading(true);
@@ -186,6 +227,14 @@ export default function App() {
                 <button type="button" className="add-wall-btn" onClick={addWall}>
                   + Add wall
                 </button>
+                <button type="button" className="save-btn" onClick={saveEstimate}>
+                  {savedMsg ? "Saved!" : "Save"}
+                </button>
+                {hasSaved && (
+                  <button type="button" className="load-btn" onClick={loadEstimate}>
+                    Restore saved
+                  </button>
+                )}
                 <button type="submit" className="calculate-btn" disabled={loading}>
                   {loading ? "Calculating…" : "Calculate"}
                 </button>

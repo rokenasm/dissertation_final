@@ -109,9 +109,45 @@ export default function ResultsTable({ walls, totals, prices, onPriceChange }: P
   const multiWall = walls.length > 1;
   const grandTotal = ROWS.reduce((sum, row) => sum + row.totalCost(totals, prices), 0);
 
+  function downloadCSV() {
+    const visibleRows = ROWS.filter(row => !(row.label === "Insulation" && row.qty(totals) === 0));
+    const wallHeaders = multiWall ? walls.map((_, i) => `Wall ${i + 1}`) : [];
+    const headers = ["Material", "Product", ...wallHeaders, "Qty", "Unit", "Unit Price (£)", "Total (£)"];
+
+    const dataRows = visibleRows.map(row => {
+      const perWall = multiWall ? walls.map(w => row.perWall ? row.perWall(w) : "—") : [];
+      return [
+        row.label,
+        `"${row.product}"`,
+        ...perWall,
+        row.qty(totals),
+        row.unit,
+        prices[row.priceKey].toFixed(2),
+        row.totalCost(totals, prices).toFixed(2),
+      ].join(",");
+    });
+
+    const totalPad = multiWall ? walls.map(() => "").join(",") + "," : "";
+    const totalRow = `Total,,,${totalPad},,, ,${grandTotal.toFixed(2)}`;
+
+    const csv = [headers.join(","), ...dataRows, totalRow].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "drylining-estimate.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div className="results">
-      <h2>Material Estimate</h2>
+      <div className="results-header">
+        <h2>Material Estimate</h2>
+        <button type="button" className="export-btn" onClick={downloadCSV}>
+          Export CSV
+        </button>
+      </div>
       <table className="results-table">
         <thead>
           <tr>
