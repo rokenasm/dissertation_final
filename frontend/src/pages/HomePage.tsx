@@ -5,139 +5,178 @@ export default function HomePage() {
     <>
       {/* Hero */}
       <section className="hero">
-        <div className="hero-inner">
+        <div className="hero-grid">
           <div className="hero-content">
-            <span className="hero-badge">AI-Powered Drylining Takeoff</span>
+            <div className="hero-eyebrow">
+              <span className="hero-rule" />
+              <span>No. 001 — Drylining Series</span>
+            </div>
             <h1 className="hero-title">
-              From drawing to <span className="accent">quote in minutes</span>
+              From drawing to<br />
+              quote in <em>minutes</em>.
             </h1>
             <p className="hero-sub">
-              Upload a floor plan, let AI detect the walls, and get a complete material takeoff for
-              British Gypsum GypWall partitions — accurate to the spec, ready to price up.
+              A material takeoff tool for British Gypsum GypWall partitions —
+              built by someone who works in the trade, for people who actually
+              price these jobs.
             </p>
             <div className="hero-ctas">
-              <Link to="/estimator" className="btn btn-primary btn-lg">Start estimating →</Link>
-              <Link to="/about" className="btn btn-ghost btn-lg">How it works</Link>
-            </div>
-            <div className="hero-trust">
-              <span>✓ GypWall Single Frame spec A206001</span>
-              <span>✓ Works with PDF & images</span>
-              <span>✓ Editable UK merchant prices</span>
+              <Link to="/estimator" className="btn btn-primary">Start estimating →</Link>
+              <Link to="/about" className="btn btn-text">Read the story</Link>
             </div>
           </div>
-          <div className="hero-visual">
-            <div className="blueprint-card">
-              <div className="blueprint-header">
-                <span className="blueprint-dot" />
-                <span className="blueprint-dot" />
-                <span className="blueprint-dot" />
-                <span className="blueprint-filename">floor-plan.pdf</span>
+
+          {/* Title-block card */}
+          <aside className="titleblock">
+            <div className="titleblock-top">
+              <div className="titleblock-cell">
+                <span className="tb-key">Project</span>
+                <span className="tb-val">RMBuild</span>
               </div>
-              <div className="blueprint-body">
-                <svg viewBox="0 0 280 180" className="blueprint-svg">
-                  <defs>
-                    <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
-                      <path d="M 10 0 L 0 0 0 10" fill="none" stroke="#d6e4f2" strokeWidth="0.5" />
-                    </pattern>
-                  </defs>
-                  <rect width="280" height="180" fill="url(#grid)" />
-                  {/* Outer walls */}
-                  <rect x="20" y="20" width="240" height="140" fill="none" stroke="#0a1f3d" strokeWidth="3" />
-                  {/* Interior partitions (cyan = detected) */}
-                  <line x1="120" y1="20" x2="120" y2="100" stroke="#00b4d8" strokeWidth="3" />
-                  <line x1="120" y1="100" x2="200" y2="100" stroke="#00b4d8" strokeWidth="3" />
-                  {/* Door opening */}
-                  <line x1="160" y1="100" x2="180" y2="100" stroke="#fff" strokeWidth="4" />
-                  <path d="M 160 100 A 20 20 0 0 1 180 100" fill="none" stroke="#00b4d8" strokeWidth="1" />
-                  {/* Dimension labels */}
-                  <text x="70" y="15" fill="#0a1f3d" fontSize="9" fontFamily="monospace">5.0 m</text>
-                  <text x="5" y="95" fill="#0a1f3d" fontSize="9" fontFamily="monospace" transform="rotate(-90, 10, 90)">2.4 m</text>
-                  <circle cx="120" cy="60" r="3" fill="#00b4d8" />
-                  <text x="128" y="64" fill="#00b4d8" fontSize="9" fontFamily="monospace" fontWeight="700">Wall 1</text>
-                  <circle cx="160" cy="100" r="3" fill="#00b4d8" />
-                  <text x="168" y="112" fill="#00b4d8" fontSize="9" fontFamily="monospace" fontWeight="700">Wall 2</text>
-                </svg>
-              </div>
-              <div className="blueprint-footer">
-                <span className="blueprint-status">✓ 2 walls detected · 1 opening · scale 1:50</span>
+              <div className="titleblock-cell">
+                <span className="tb-key">Rev.</span>
+                <span className="tb-val">04</span>
               </div>
             </div>
-          </div>
+            <div className="titleblock-body">
+              <div className="tb-row">
+                <span className="tb-key">Spec</span>
+                <span className="tb-val tb-mono">A206001 — GypWall Single Frame</span>
+              </div>
+              <div className="tb-row">
+                <span className="tb-key">Scope</span>
+                <span className="tb-val">Material takeoff only</span>
+              </div>
+              <div className="tb-row">
+                <span className="tb-key">Inputs</span>
+                <span className="tb-val tb-mono">PDF · JPG · PNG · manual</span>
+              </div>
+              <div className="tb-row">
+                <span className="tb-key">Output</span>
+                <span className="tb-val tb-mono">Boards · studs · track · ins. · fixings · tape · EasiFill</span>
+              </div>
+            </div>
+            <div className="titleblock-bottom">
+              <div className="tb-stat">
+                <span className="tb-stat-num">12</span>
+                <span className="tb-stat-label">materials calculated</span>
+              </div>
+              <div className="tb-stat">
+                <span className="tb-stat-num">~30s</span>
+                <span className="tb-stat-label">per floor plan</span>
+              </div>
+              <div className="tb-stat">
+                <span className="tb-stat-num">£0</span>
+                <span className="tb-stat-label">to try</span>
+              </div>
+            </div>
+          </aside>
         </div>
       </section>
 
-      {/* How it works */}
-      <section className="section">
-        <div className="section-head">
-          <span className="eyebrow">How it works</span>
-          <h2>Three steps to a material list</h2>
-          <p className="section-sub">No CAD licence, no spreadsheets, no guesswork. Upload, review, get the takeoff.</p>
+      {/* Divider */}
+      <div className="section-divider">
+        <span className="divider-label">Method</span>
+      </div>
+
+      {/* How it works — as a numbered vertical list with callout lines */}
+      <section className="process">
+        <h2 className="big-h2">
+          Three steps from a <em>drawing</em> to a <em>number</em>.
+        </h2>
+        <ol className="process-list">
+          <li className="process-item">
+            <div className="process-marker">01</div>
+            <div className="process-body">
+              <h3>Upload the plan.</h3>
+              <p>Drop in a PDF, a JPEG, or a photo of a drawing. Architect output, hand sketches, site photos — all fair game.</p>
+            </div>
+          </li>
+          <li className="process-item">
+            <div className="process-marker">02</div>
+            <div className="process-body">
+              <h3>Let the machine read it.</h3>
+              <p>Partition walls get detected and dimensioned automatically. You review — and correct — before anything gets calculated.</p>
+            </div>
+          </li>
+          <li className="process-item">
+            <div className="process-marker">03</div>
+            <div className="process-body">
+              <h3>Price the takeoff.</h3>
+              <p>Boards, studs, track, fixings, tape, EasiFill — all calculated to spec. Prices are editable so it matches your merchant.</p>
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      {/* Divider */}
+      <div className="section-divider">
+        <span className="divider-label">Features</span>
+      </div>
+
+      {/* Bento grid — varied sizes */}
+      <section className="bento">
+        <div className="bento-card bento-lg">
+          <div className="bento-tag">Spec-compliant</div>
+          <h3>Every calc tied to <em>GypWall A206001</em>.</h3>
+          <p>
+            Stud spacing at 600 or 400 mm. Track cut with waste. Openings
+            deducted from the boarded area. Insulation only if the wall's
+            insulated. Nothing invented — just the published spec, done right.
+          </p>
+          <div className="bento-detail">
+            <span className="tb-mono">GypWall Single Frame · Spec A206001</span>
+          </div>
         </div>
-        <div className="steps">
-          <div className="step-card">
-            <div className="step-num">01</div>
-            <h3>Upload your plan</h3>
-            <p>Drop in a PDF, JPEG or PNG of your floor plan or elevation. Architect drawings, hand sketches, or photos all work.</p>
-          </div>
-          <div className="step-card">
-            <div className="step-num">02</div>
-            <h3>AI detects the walls</h3>
-            <p>Claude vision reads the drawing, identifies partition walls — even colour-coded wall types — and extracts dimensions.</p>
-          </div>
-          <div className="step-card">
-            <div className="step-num">03</div>
-            <h3>Get your takeoff</h3>
-            <p>Boards, studs, track, insulation, screws, tape, EasiFill — all calculated per GypWall spec with editable prices.</p>
-          </div>
+
+        <div className="bento-card bento-md">
+          <div className="bento-tag">Vision</div>
+          <h3>Walls, detected.</h3>
+          <p>Upload a floor plan and get dimensioned partitions back. Handles architect colour-coding for wall types.</p>
+        </div>
+
+        <div className="bento-card bento-md bento-red">
+          <div className="bento-tag">UK pricing</div>
+          <h3>Merchant-ready numbers.</h3>
+          <p>Pre-loaded with UK trade rates. Edit any price in place — the total updates live.</p>
+        </div>
+
+        <div className="bento-card bento-sm">
+          <div className="bento-tag">Templates</div>
+          <h3>One-click walls.</h3>
+          <p>Office partitions. Bathrooms. Dividing walls. Common builds, pre-filled.</p>
+        </div>
+
+        <div className="bento-card bento-sm">
+          <div className="bento-tag">CSV</div>
+          <h3>Export, anywhere.</h3>
+          <p>Download the takeoff as a spreadsheet. Share with merchants, clients, PMs.</p>
+        </div>
+
+        <div className="bento-card bento-sm">
+          <div className="bento-tag">Local save</div>
+          <h3>Come back to it.</h3>
+          <p>Saves stay in your browser. No account, no server, no chance of losing a quote.</p>
         </div>
       </section>
 
-      {/* Features */}
-      <section className="section section-tint">
-        <div className="section-head">
-          <span className="eyebrow">What you get</span>
-          <h2>Built for real estimating work</h2>
-        </div>
-        <div className="features">
-          <div className="feature">
-            <div className="feature-icon">📐</div>
-            <h3>GypWall spec compliant</h3>
-            <p>Calculations follow British Gypsum A206001 to the letter — stud spacing, track, waste factors, the lot.</p>
-          </div>
-          <div className="feature">
-            <div className="feature-icon">🤖</div>
-            <h3>AI floor plan reader</h3>
-            <p>Upload a drawing and extract walls automatically. Handles architect colour coding for wall types.</p>
-          </div>
-          <div className="feature">
-            <div className="feature-icon">💷</div>
-            <h3>UK merchant pricing</h3>
-            <p>Pre-loaded with current UK trade rates. Edit any price to match your merchant's quote.</p>
-          </div>
-          <div className="feature">
-            <div className="feature-icon">🧱</div>
-            <h3>Wall templates</h3>
-            <p>Standard office partitions, bathrooms, dividing walls — one click to load typical dimensions.</p>
-          </div>
-          <div className="feature">
-            <div className="feature-icon">📊</div>
-            <h3>CSV export</h3>
-            <p>Download the full takeoff as a spreadsheet. Share with merchants, clients, or your own systems.</p>
-          </div>
-          <div className="feature">
-            <div className="feature-icon">💾</div>
-            <h3>Save & restore</h3>
-            <p>Save your estimates locally. Come back and reload exactly where you left off.</p>
-          </div>
-        </div>
+      {/* Redline callout */}
+      <section className="pullquote">
+        <p className="pullquote-text">
+          &ldquo;Pricing a partition job shouldn't take a morning.<br />
+          <span className="redline">It should take a coffee.</span>&rdquo;
+        </p>
+        <p className="pullquote-attr">— the whole point of RMBuild</p>
       </section>
 
       {/* CTA */}
-      <section className="section cta-section">
-        <div className="cta-card">
-          <h2>Ready to try it?</h2>
-          <p>No sign-up. No credit card. Just upload a floor plan and see the result.</p>
-          <Link to="/estimator" className="btn btn-primary btn-lg">Launch the estimator →</Link>
+      <section className="cta">
+        <div className="cta-inner">
+          <div>
+            <h2 className="big-h2 no-em">Have a drawing? Try it now.</h2>
+            <p className="cta-sub">No sign-up. No credit card. Free to use.</p>
+          </div>
+          <Link to="/estimator" className="btn btn-primary btn-xl">Launch the estimator →</Link>
         </div>
       </section>
     </>

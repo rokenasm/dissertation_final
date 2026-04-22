@@ -6,7 +6,7 @@ export default function Footer() {
     <footer className="footer">
       <div className="footer-inner">
         <div className="footer-col footer-brand">
-          <Logo variant="light" />
+          <Logo variant="light" showTitle />
           <p className="footer-tagline">From drawing to quote in minutes.</p>
         </div>
         <div className="footer-col">
