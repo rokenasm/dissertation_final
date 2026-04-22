@@ -34,8 +34,8 @@ export default function HomePage() {
                 <span className="tb-val">RMBuild</span>
               </div>
               <div className="titleblock-cell">
-                <span className="tb-key">Rev.</span>
-                <span className="tb-val">04</span>
+                <span className="tb-key">Year</span>
+                <span className="tb-val">2026</span>
               </div>
             </div>
             <div className="titleblock-body">
@@ -142,12 +142,6 @@ export default function HomePage() {
         </div>
 
         <div className="bento-card bento-sm">
-          <div className="bento-tag">Templates</div>
-          <h3>One-click walls.</h3>
-          <p>Office partitions. Bathrooms. Dividing walls. Common builds, pre-filled.</p>
-        </div>
-
-        <div className="bento-card bento-sm">
           <div className="bento-tag">CSV</div>
           <h3>Export, anywhere.</h3>
           <p>Download the takeoff as a spreadsheet. Share with merchants, clients, PMs.</p>
@@ -166,7 +160,6 @@ export default function HomePage() {
           &ldquo;Pricing a partition job shouldn't take a morning.<br />
           <span className="redline">It should take a coffee.</span>&rdquo;
         </p>
-        <p className="pullquote-attr">— the whole point of RMBuild</p>
       </section>
 
       {/* CTA */}
@@ -174,7 +167,7 @@ export default function HomePage() {
         <div className="cta-inner">
           <div>
             <h2 className="big-h2 no-em">Have a drawing? Try it now.</h2>
-            <p className="cta-sub">No sign-up. No credit card. Free to use.</p>
+            <p className="cta-sub">Free to use. No sign-up needed.</p>
           </div>
           <Link to="/estimator" className="btn btn-primary btn-xl">Launch the estimator →</Link>
         </div>

@@ -9,8 +9,8 @@ export default function AboutPage() {
       <div className="prose">
         <p>
           RMBuild is a drylining material estimator built to solve a problem I
-          see every day on site: pricing partition walls is slow, error-prone,
-          and sitting in spreadsheets nobody updates.
+          see on site: pricing partition walls is slow, error-prone, and
+          sitting in spreadsheets nobody updates.
         </p>
 
         <h3>The problem</h3>

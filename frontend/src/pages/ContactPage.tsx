@@ -18,7 +18,7 @@ export default function ContactPage() {
         <span className="eyebrow">Contact</span>
         <h2>Get in touch</h2>
         <p className="section-sub">
-          Questions, feedback, feature requests, or just want to say hello — drop a line.
+          Questions, feedback, or bug reports — drop a line.
         </p>
       </div>
 
@@ -33,8 +33,8 @@ export default function ContactPage() {
             <p>United Kingdom</p>
           </div>
           <div className="contact-item">
-            <h4>Response time</h4>
-            <p>Usually within 24 hours</p>
+            <h4>Project</h4>
+            <p>Final-year dissertation, 2026</p>
           </div>
         </div>
 
@@ -66,7 +66,7 @@ export default function ContactPage() {
               rows={6}
               value={form.message}
               onChange={(e) => setForm({ ...form, message: e.target.value })}
-              placeholder="Tell me what's on your mind…"
+              placeholder="Question, feedback, or bug report…"
             />
           </label>
           <button type="submit" className="btn btn-primary">
