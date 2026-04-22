@@ -34,7 +34,7 @@ export default function AboutPage() {
         <h3>Built on real spec</h3>
         <p>
           Every calculation is tied to the published GypWall spec. Stud spacing
-          at 600mm or 400mm. Track cut to length plus waste. Board coverage
+          at 600mm or 300mm. Track cut to length plus waste. Board coverage
           from an opening deducted properly. Insulation only if the wall's
           insulated. Nothing invented.
         </p>
@@ -56,7 +56,7 @@ export default function AboutPage() {
         </ul>
 
         <p className="signoff">
-          Built by Rokas — final-year dissertation project, University of Surrey.
+          Built by Rokas — final-year dissertation project.
         </p>
       </div>
     </section>

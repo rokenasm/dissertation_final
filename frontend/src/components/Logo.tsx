@@ -16,7 +16,7 @@ export default function Logo({ variant = "dark", showTitle = false }: Props) {
       {showTitle && (
         <div className="logo-meta" style={{ color }}>
           <span className="logo-rule" />
-          <span className="logo-est">est. 2026 — Surrey</span>
+          <span className="logo-est">est. 2026</span>
           <span className="logo-rule" />
         </div>
       )}

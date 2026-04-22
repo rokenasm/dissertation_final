@@ -53,12 +53,12 @@ export default function HomePage() {
               </div>
               <div className="tb-row">
                 <span className="tb-key">Output</span>
-                <span className="tb-val tb-mono">Boards · studs · track · ins. · fixings · tape · EasiFill</span>
+                <span className="tb-val tb-mono">Boards · studs · track · insulation · fixings · tape</span>
               </div>
             </div>
             <div className="titleblock-bottom">
               <div className="tb-stat">
-                <span className="tb-stat-num">12</span>
+                <span className="tb-stat-num">7</span>
                 <span className="tb-stat-label">materials calculated</span>
               </div>
               <div className="tb-stat">
@@ -103,7 +103,7 @@ export default function HomePage() {
             <div className="process-marker">03</div>
             <div className="process-body">
               <h3>Price the takeoff.</h3>
-              <p>Boards, studs, track, fixings, tape, EasiFill — all calculated to spec. Prices are editable so it matches your merchant.</p>
+              <p>Boards, studs, track, insulation, fixings, and tape — all calculated to spec. Jointing compound added when the wall's painted. Prices are editable so it matches your merchant.</p>
             </div>
           </li>
         </ol>
@@ -120,7 +120,7 @@ export default function HomePage() {
           <div className="bento-tag">Spec-compliant</div>
           <h3>Every calc tied to <em>GypWall A206001</em>.</h3>
           <p>
-            Stud spacing at 600 or 400 mm. Track cut with waste. Openings
+            Stud spacing at 600 or 300 mm. Track cut with waste. Openings
             deducted from the boarded area. Insulation only if the wall's
             insulated. Nothing invented — just the published spec, done right.
           </p>
