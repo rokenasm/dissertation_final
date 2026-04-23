@@ -2,15 +2,28 @@
 main.py — FastAPI application for the Drylining Estimator.
 
 Endpoints:
-    POST /estimate        — accepts wall runs + config, returns material totals
-    POST /agent/analyse   — accepts floor plan image, returns detected walls
+    POST /estimate         — accepts wall runs + config, returns material totals
+    POST /agent/analyse    — accepts floor plan image, returns detected walls
+    POST /api/contact      — accepts contact form submissions (stores in SQLite)
+    POST /api/admin/login  — password gate for /admin
+    GET  /api/admin/contacts   — list all contact submissions
+    POST /api/admin/contacts/{id}/read    — mark as read
+    POST /api/admin/contacts/{id}/replied — mark as replied
+    DELETE /api/admin/contacts/{id}       — delete a submission
 
 Run:
     uvicorn backend.main:app --reload --port 8001
 """
 
-from fastapi import FastAPI, HTTPException, UploadFile, File
+import os
+import secrets
+from typing import Any
+
+import re
+
+from fastapi import Depends, FastAPI, Header, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field, field_validator
 
 from backend.calculator import (
     Opening,
@@ -19,6 +32,7 @@ from backend.calculator import (
 )
 from backend.models import EstimateRequest, EstimateResponse
 from backend.agent import analyse_floor_plan
+from backend import db
 
 
 app = FastAPI(
@@ -28,7 +42,7 @@ app = FastAPI(
         "partitions (spec A206001). Returns quantities for boards, studs, track, "
         "insulation, screws, joint tape, and EasiFill per wall run and as project totals."
     ),
-    version="0.1.0",
+    version="0.2.0",
 )
 
 # CORS — allow the local Vite dev server (port 5173) during development
@@ -40,54 +54,93 @@ app.add_middleware(
 )
 
 
+@app.on_event("startup")
+def on_startup() -> None:
+    db.init_db()
+
+
 # ---------------------------------------------------------------------------
-# Routes
+# Admin auth — password + ephemeral token
+# ---------------------------------------------------------------------------
+
+# Password is read from env. Default is only used in dev; change in production.
+ADMIN_PASSWORD = os.environ.get("RMBUILD_ADMIN_PASSWORD", "rmbuild-2026")
+
+# In-memory token store. Restart = all tokens invalidated, which is fine for a
+# single-user admin page.
+_ADMIN_TOKENS: set[str] = set()
+
+
+def _require_admin(authorization: str | None = Header(default=None)) -> None:
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    token = authorization[7:].strip()
+    if token not in _ADMIN_TOKENS:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+
+class LoginRequest(BaseModel):
+    password: str
+
+
+class LoginResponse(BaseModel):
+    token: str
+
+
+# ---------------------------------------------------------------------------
+# Contact form schemas
+# ---------------------------------------------------------------------------
+
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+class ContactRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    email: str = Field(min_length=3, max_length=200)
+    message: str = Field(min_length=1, max_length=4000)
+
+    @field_validator("email")
+    @classmethod
+    def _validate_email(cls, v: str) -> str:
+        v = v.strip()
+        if not _EMAIL_RE.match(v):
+            raise ValueError("Invalid email address")
+        return v
+
+
+class ContactResponse(BaseModel):
+    id: int
+    ok: bool = True
+
+
+# ---------------------------------------------------------------------------
+# Routes — existing
 # ---------------------------------------------------------------------------
 
 @app.get("/health")
 def health_check():
-    """Simple liveness check."""
     return {"status": "ok"}
 
 
 @app.post("/agent/analyse")
 async def agent_analyse(file: UploadFile = File(...)):
-    """
-    Analyse a floor plan image using Gemini vision.
-
-    Accepts a floor plan image (JPEG, PNG) and returns a list of detected
-    partition walls with estimated lengths, heights, and openings.
-    The user can review and edit these before running /estimate.
-    """
     allowed = {"image/jpeg", "image/png", "image/webp", "application/pdf"}
     mime = file.content_type or "image/jpeg"
-
     if mime not in allowed:
         raise HTTPException(
             status_code=415,
             detail=f"Unsupported file type '{mime}'. Upload a JPEG, PNG, or PDF.",
         )
-
     image_bytes = await file.read()
-
     try:
         result = analyse_floor_plan(image_bytes, mime)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-
     return result
 
 
 @app.post("/estimate", response_model=EstimateResponse)
 def estimate(request: EstimateRequest) -> EstimateResponse:
-    """
-    Calculate material quantities for one or more wall runs.
-
-    Accepts a list of wall definitions (dimensions, openings, configuration)
-    and returns per-wall breakdowns and project totals following
-    British Gypsum GypWall Single Frame specification A206001.
-    """
-    # Convert Pydantic models → calculator dataclasses
     walls = []
     for w in request.walls:
         openings = [
@@ -114,13 +167,11 @@ def estimate(request: EstimateRequest) -> EstimateResponse:
             )
         )
 
-    # Run the calculator
     try:
         result = estimate_project(walls)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
-    # Convert calculator dataclasses → Pydantic response models
     return EstimateResponse(
         walls=[
             {
@@ -154,3 +205,53 @@ def estimate(request: EstimateRequest) -> EstimateResponse:
             "easifill_bags": result.totals.easifill_bags,
         },
     )
+
+
+# ---------------------------------------------------------------------------
+# Routes — contact form (public)
+# ---------------------------------------------------------------------------
+
+@app.post("/api/contact", response_model=ContactResponse)
+def contact_submit(payload: ContactRequest) -> ContactResponse:
+    """Accept a contact form submission and store it in SQLite."""
+    new_id = db.insert_contact(payload.name, payload.email, payload.message)
+    return ContactResponse(id=new_id, ok=True)
+
+
+# ---------------------------------------------------------------------------
+# Routes — admin (password + token gated)
+# ---------------------------------------------------------------------------
+
+@app.post("/api/admin/login", response_model=LoginResponse)
+def admin_login(payload: LoginRequest) -> LoginResponse:
+    if payload.password != ADMIN_PASSWORD:
+        raise HTTPException(status_code=401, detail="Incorrect password")
+    token = secrets.token_urlsafe(32)
+    _ADMIN_TOKENS.add(token)
+    return LoginResponse(token=token)
+
+
+@app.get("/api/admin/contacts")
+def admin_list_contacts(_auth: None = Depends(_require_admin)) -> dict[str, Any]:
+    return {
+        "contacts": db.list_contacts(),
+        "unread": db.count_unread(),
+    }
+
+
+@app.post("/api/admin/contacts/{contact_id}/read")
+def admin_mark_read(contact_id: int, _auth: None = Depends(_require_admin)) -> dict[str, bool]:
+    db.set_read(contact_id, True)
+    return {"ok": True}
+
+
+@app.post("/api/admin/contacts/{contact_id}/replied")
+def admin_mark_replied(contact_id: int, _auth: None = Depends(_require_admin)) -> dict[str, bool]:
+    db.set_replied(contact_id, True)
+    return {"ok": True}
+
+
+@app.delete("/api/admin/contacts/{contact_id}")
+def admin_delete(contact_id: int, _auth: None = Depends(_require_admin)) -> dict[str, bool]:
+    db.delete_contact(contact_id)
+    return {"ok": True}
