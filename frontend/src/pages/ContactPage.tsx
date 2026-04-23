@@ -1,15 +1,34 @@
 import { useState } from "react";
 
+const API = import.meta.env.VITE_API_BASE ?? "http://localhost:8001";
+
+type Status = "idle" | "sending" | "sent" | "error";
+
 export default function ContactPage() {
   const [form, setForm] = useState({ name: "", email: "", message: "" });
-  const [sent, setSent] = useState(false);
+  const [status, setStatus] = useState<Status>("idle");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const subject = encodeURIComponent(`RMBuild enquiry from ${form.name}`);
-    const body = encodeURIComponent(`${form.message}\n\n—\nFrom: ${form.name} <${form.email}>`);
-    window.location.href = `mailto:rokenasm@gmail.com?subject=${subject}&body=${body}`;
-    setSent(true);
+    setStatus("sending");
+    setErrorMsg(null);
+    try {
+      const res = await fetch(`${API}/api/contact`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail ?? `Server returned ${res.status}`);
+      }
+      setStatus("sent");
+      setForm({ name: "", email: "", message: "" });
+    } catch (err) {
+      setStatus("error");
+      setErrorMsg(err instanceof Error ? err.message : "Something went wrong");
+    }
   }
 
   return (
@@ -38,41 +57,67 @@ export default function ContactPage() {
           </div>
         </div>
 
-        <form className="contact-form" onSubmit={handleSubmit}>
-          <label>
-            Your name
-            <input
-              type="text"
-              required
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              placeholder="John Smith"
-            />
-          </label>
-          <label>
-            Email
-            <input
-              type="email"
-              required
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              placeholder="john@example.com"
-            />
-          </label>
-          <label>
-            Message
-            <textarea
-              required
-              rows={6}
-              value={form.message}
-              onChange={(e) => setForm({ ...form, message: e.target.value })}
-              placeholder="Question, feedback, or bug report…"
-            />
-          </label>
-          <button type="submit" className="btn btn-primary">
-            {sent ? "Opening your email…" : "Send message"}
-          </button>
-        </form>
+        {status === "sent" ? (
+          <div className="contact-sent">
+            <h3>Message sent.</h3>
+            <p>
+              Thanks — I read every one. You'll hear back on the email you
+              gave.
+            </p>
+            <button
+              className="btn btn-text"
+              onClick={() => setStatus("idle")}
+            >
+              Send another
+            </button>
+          </div>
+        ) : (
+          <form className="contact-form" onSubmit={handleSubmit}>
+            <label>
+              Your name
+              <input
+                type="text"
+                required
+                maxLength={120}
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="John Smith"
+              />
+            </label>
+            <label>
+              Email
+              <input
+                type="email"
+                required
+                maxLength={200}
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                placeholder="john@example.com"
+              />
+            </label>
+            <label>
+              Message
+              <textarea
+                required
+                rows={6}
+                maxLength={4000}
+                value={form.message}
+                onChange={(e) => setForm({ ...form, message: e.target.value })}
+                placeholder="Question, feedback, or bug report…"
+              />
+            </label>
+            {status === "error" && errorMsg && (
+              <p className="contact-error">Couldn't send — {errorMsg}</p>
+            )}
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={status === "sending"}
+            >
+              {status === "sending" ? "Sending…" : "Send message"}
+            </button>
+          </form>
+        )}
       </div>
     </section>
   );
