@@ -47,7 +47,7 @@ export async function analyseFloorPlan(file: File): Promise<AgentAnalysisResult>
   if (!response.ok) {
     const err = await response.json().catch(() => null);
     throw new Error(err?.detail ?? `Request failed (${response.status})`);
-  }
+  }w
 
   return response.json();
 }
