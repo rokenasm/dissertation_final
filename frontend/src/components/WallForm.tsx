@@ -1,5 +1,14 @@
 import { useState } from "react";
 import type { WallFormData, Opening } from "../types";
+import type { StudSize, BoardType, Finish } from "../catalogue";
+import {
+  STUDS,
+  BOARDS,
+  FINISHES,
+  STUD_ORDER,
+  BOARD_ORDER,
+  FINISH_ORDER,
+} from "../catalogue";
 
 interface Props {
   data: WallFormData;
@@ -54,6 +63,38 @@ export default function WallForm({ data, onChange, wallIndex }: Props) {
         </label>
       </div>
 
+      <div className="form-row form-row-selects">
+        <label className="select-label">
+          <span className="select-head">Metal</span>
+          <select
+            value={data.stud_size}
+            onChange={(e) => set("stud_size", e.target.value as StudSize)}
+          >
+            {STUD_ORDER.map((size) => (
+              <option key={size} value={size}>
+                {size} — {STUDS[size].partition_label}
+              </option>
+            ))}
+          </select>
+          <span className="select-foot">{STUDS[data.stud_size].name}</span>
+        </label>
+
+        <label className="select-label">
+          <span className="select-head">Board</span>
+          <select
+            value={data.board_type}
+            onChange={(e) => set("board_type", e.target.value as BoardType)}
+          >
+            {BOARD_ORDER.map((type) => (
+              <option key={type} value={type}>
+                {BOARDS[type].name.replace("Gyproc ", "").replace(" 12.5 mm", "")} — {BOARDS[type].tagline}
+              </option>
+            ))}
+          </select>
+          <span className="select-foot">{BOARDS[data.board_type].name}</span>
+        </label>
+      </div>
+
       <div className="form-row">
         <fieldset>
           <legend>Stud spacing</legend>
@@ -82,7 +123,23 @@ export default function WallForm({ data, onChange, wallIndex }: Props) {
                 checked={data.sides === s}
                 onChange={() => set("sides", s)}
               />
-              {s === 1 ? "Single" : "Double"}
+              {s === 1 ? "One side" : "Both sides"}
+            </label>
+          ))}
+        </fieldset>
+
+        <fieldset>
+          <legend>Skins (layers per side)</legend>
+          {([1, 2] as const).map((n) => (
+            <label key={n} className="inline-label">
+              <input
+                type="radio"
+                name={`layers_${wallIndex}`}
+                value={n}
+                checked={data.layers === n}
+                onChange={() => set("layers", n)}
+              />
+              {n === 1 ? "Single skin" : "Double skin"}
             </label>
           ))}
         </fieldset>
@@ -95,6 +152,27 @@ export default function WallForm({ data, onChange, wallIndex }: Props) {
           />
           Insulation
         </label>
+      </div>
+
+      <div className="form-row">
+        <fieldset className="finish-fieldset">
+          <legend>Finish</legend>
+          {FINISH_ORDER.map((f) => (
+            <label key={f} className="inline-label finish-label">
+              <input
+                type="radio"
+                name={`finish_${wallIndex}`}
+                value={f}
+                checked={data.finish === f}
+                onChange={() => set("finish", f as Finish)}
+              />
+              <span>
+                <strong>{FINISHES[f].label}</strong>
+                <em>{FINISHES[f].tagline}</em>
+              </span>
+            </label>
+          ))}
+        </fieldset>
       </div>
 
       <div className="openings-section">
