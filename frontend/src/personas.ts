@@ -2,9 +2,12 @@ import type { Persona, WallFormData } from "./types";
 
 const BASE: Omit<WallFormData, "length" | "height"> = {
   label: "",
+  stud_size: "70S",
   stud_spacing_mm: 600,
   sides: 2,
   layers: 1,
+  board_type: "standard",
+  finish: "paint",
   insulated: false,
   openings: [],
   board_waste_pct: 10,
@@ -20,6 +23,7 @@ const BASE: Omit<WallFormData, "length" | "height"> = {
 export const PERSONA_DEFAULTS: Record<Persona, Omit<WallFormData, "length" | "height">> = {
   diy: {
     ...BASE,
+    stud_size: "48S",
     board_waste_pct: 15,
     stud_waste_pct: 10,
     track_waste_pct: 10,
@@ -30,6 +34,7 @@ export const PERSONA_DEFAULTS: Record<Persona, Omit<WallFormData, "length" | "he
   },
   estimator: {
     ...BASE,
+    stud_size: "92S",
     board_waste_pct: 10,
     stud_waste_pct: 5,
   },
