@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import type { AgentAnalysisResult, DetectedWall } from "../types";
 
 interface Props {
@@ -17,30 +17,58 @@ export default function AgentUpload({
   onFileChange, onAnalyse, onWallsDetected,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const [dragOver, setDragOver] = useState(false);
+
+  function openPicker() {
+    inputRef.current?.click();
+  }
+
+  function acceptFile(f: File) {
+    if (!f.type.match(/^(image\/(jpeg|png|webp)|application\/pdf)$/)) return;
+    onFileChange(f, URL.createObjectURL(f));
+  }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
-    if (!f) return;
-    onFileChange(f, URL.createObjectURL(f));
+    if (f) acceptFile(f);
   }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDragOver(false);
+    const f = e.dataTransfer.files?.[0];
+    if (f) acceptFile(f);
+  }
+
+  const isPdf = file?.type === "application/pdf";
 
   return (
     <div className="agent-upload">
       <div
-        className="upload-area"
-        onClick={() => { if (!preview || file?.type !== "application/pdf") inputRef.current?.click(); }}
+        className={"drop-sheet" + (dragOver ? " is-drag" : "")}
+        onClick={() => { if (!preview) openPicker(); }}
+        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={handleDrop}
+        role="button"
+        tabIndex={0}
       >
-        {preview && file?.type !== "application/pdf" ? (
-          <img src={preview} alt="Floor plan preview" className="upload-preview" />
-        ) : preview && file?.type === "application/pdf" ? (
-          <iframe src={preview} className="upload-pdf-preview" title="Floor plan PDF" />
+        <div className="drop-sheet-corners" aria-hidden>
+          <span /><span /><span /><span />
+        </div>
+
+        {preview && !isPdf ? (
+          <img src={preview} alt="Floor plan preview" className="drop-sheet-preview" />
+        ) : preview && isPdf ? (
+          <iframe src={preview} className="drop-sheet-pdf" title="Floor plan PDF" />
         ) : (
-          <div className="upload-placeholder">
-            <span className="upload-icon">📐</span>
-            <p>Click to upload a floor plan</p>
-            <p className="upload-hint">JPEG, PNG, or PDF — floor plan or elevation drawing</p>
+          <div className="drop-sheet-empty">
+            <span className="drop-sheet-label">Drawing</span>
+            <p className="drop-sheet-headline">Drop a floor plan here.</p>
+            <p className="drop-sheet-hint">JPEG · PNG · PDF — click to browse</p>
           </div>
         )}
+
         <input
           ref={inputRef}
           type="file"
@@ -51,13 +79,13 @@ export default function AgentUpload({
       </div>
 
       {file && (
-        <div className="upload-actions">
-          <button type="button" className="change-file-btn" onClick={() => inputRef.current?.click()}>
+        <div className="drop-actions">
+          <button type="button" className="btn btn-text" onClick={openPicker}>
             Change file
           </button>
           {!loading && !result && (
-            <button className="analyse-btn" onClick={onAnalyse}>
-              Analyse with AI
+            <button type="button" className="btn btn-primary" onClick={onAnalyse}>
+              Read the drawing →
             </button>
           )}
         </div>
@@ -66,20 +94,25 @@ export default function AgentUpload({
       {loading && (
         <div className="agent-loading">
           <div className="spinner" />
-          <p>Analysing floor plan… this may take a few seconds</p>
+          <p>Reading the drawing — this takes a few seconds.</p>
         </div>
       )}
 
-      {error && <p className="error-msg">{error}</p>}
+      {error && <p className="contact-error">{error}</p>}
 
       {result && (
-        <div className="agent-result">
-          <div className="agent-result-header">
+        <div className="detected-panel">
+          <div className="detected-panel-head">
             <div>
-              <p className="agent-scale">Scale detected: <strong>{result.scale_detected}</strong></p>
-              {result.notes && <p className="agent-notes">{result.notes}</p>}
+              <span className="sheet-label">Detected</span>
+              <p className="detected-scale">
+                Scale: <strong>{result.scale_detected}</strong>
+              </p>
+              {result.notes && <p className="detected-notes">{result.notes}</p>}
             </div>
-            <span className="walls-badge">{result.walls.length} wall{result.walls.length !== 1 ? "s" : ""} found</span>
+            <span className="detected-count">
+              {result.walls.length} wall{result.walls.length !== 1 ? "s" : ""}
+            </span>
           </div>
 
           {result.walls.length > 0 ? (
@@ -88,31 +121,39 @@ export default function AgentUpload({
                 <thead>
                   <tr>
                     <th>Wall</th>
-                    <th>Length (m)</th>
-                    <th>Height (m)</th>
+                    <th>Length</th>
+                    <th>Height</th>
                     <th>Openings</th>
                   </tr>
                 </thead>
                 <tbody>
                   {result.walls.map((w, i) => (
                     <tr key={i}>
-                      <td>{w.label}</td>
-                      <td>{w.length}</td>
-                      <td>{w.height}</td>
-                      <td>{w.openings.length > 0 ? w.openings.map(o => `${o.label} ${o.width}×${o.height}m`).join(", ") : "—"}</td>
+                      <td><strong>{w.label}</strong></td>
+                      <td>{w.length} m</td>
+                      <td>{w.height} m</td>
+                      <td>
+                        {w.openings.length > 0
+                          ? w.openings.map((o) => `${o.label} ${o.width}×${o.height}m`).join(", ")
+                          : "—"}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-              <p className="agent-override-note">
-                Review the detected walls above. Height defaults to 2.4m (standard UK ceiling height) — adjust if known from an elevation or section drawing. Click below to load into the estimator where you can edit any values before calculating.
+              <p className="detected-note">
+                Review the dimensions above. Height defaults to 2.4 m (standard
+                UK ceiling) — adjust if you know better from an elevation.
+                Loading them in lets you edit any number before the maths runs.
               </p>
-              <button className="use-walls-btn" onClick={() => onWallsDetected(result.walls)}>
-                Use these walls →
+              <button type="button" className="btn btn-primary" onClick={() => onWallsDetected(result.walls)}>
+                Load into walls below →
               </button>
             </>
           ) : (
-            <p className="error-msg">No partition walls detected. Try a clearer image or use manual entry.</p>
+            <p className="contact-error">
+              No partition walls detected. Try a clearer drawing or enter walls manually.
+            </p>
           )}
         </div>
       )}
