@@ -1,62 +1,68 @@
 export default function AboutPage() {
   return (
-    <section className="section section-narrow">
-      <div className="section-head">
-        <span className="eyebrow">About RMBuild</span>
-        <h2>Material estimation, done right</h2>
+    <section className="section section-narrow essay">
+      <div className="essay-head">
+        <span className="eyebrow">About — Why RMBuild exists</span>
+        <h2 className="essay-title">
+          I was a labourer before <br />
+          I was a computing student.
+        </h2>
+        <p className="essay-dateline">Rokas · Written in the final year of the dissertation, April 2026</p>
       </div>
 
-      <div className="prose">
-        <p>
-          RMBuild is a drylining material estimator built to solve a problem I
-          see on site: pricing partition walls is slow, error-prone, and
-          sitting in spreadsheets nobody updates.
+      <div className="essay-body">
+        <p className="essay-lead">
+          Before I wrote a line of code for this project, I carried boards
+          up stairs. I mixed compound. I stripped out old metal stud at
+          eleven at night because the floor above had to be handed over
+          by Monday.
         </p>
 
-        <h3>The problem</h3>
         <p>
-          A typical drylining quote starts with a PDF drawing, a tape measure,
-          and a calculator. Estimators measure wall lengths by hand, look up
-          waste factors from memory, multiply by stud spacing, and hope they
-          haven't missed an opening. One wrong row in the spreadsheet and the
-          job runs over budget — or worse, short on materials on delivery day.
+          The estimators I worked for were good at their job. They were
+          also using the same tools as in 1995 — a tape measure, a PDF,
+          and an Excel sheet that nobody really owned. Pricing a partition
+          job would take a morning. The job would start. Materials would
+          sometimes arrive short. Someone would drive to Selco. The margin
+          would disappear. Nobody blamed anyone because nobody really knew
+          which cell had the wrong number.
         </p>
 
-        <h3>The solution</h3>
         <p>
-          RMBuild does the maths for you. Upload a floor plan and the AI
-          extracts wall dimensions automatically. Prefer to measure yourself?
-          Manual entry calculates boards, studs, track, insulation, fixings,
-          tape, and EasiFill — all following the official British Gypsum
-          GypWall Single Frame specification (A206001).
+          I kept thinking: the maths is the easy part. The maths is
+          published. British Gypsum write it down in the spec and
+          give it away for free. Why is this still slow?
         </p>
 
-        <h3>Built on real spec</h3>
+        <h3>What this is</h3>
         <p>
-          Every calculation is tied to the published GypWall spec. Stud spacing
-          at 600mm or 300mm. Track cut to length plus waste. Board coverage
-          from an opening deducted properly. Insulation only if the wall's
-          insulated. Nothing invented.
+          RMBuild does one thing. It takes a drawing — a PDF, a photo, a
+          sketch — and gives you the material list to price a GypWall
+          partition. Boards, studs, track, insulation, fixings, tape.
+          Every number tied to the published British Gypsum spec
+          (A206001). Prices are editable because every merchant is
+          different.
         </p>
 
-        <h3>Materials, not labour</h3>
+        <h3>What it isn't</h3>
         <p>
-          RMBuild outputs quantities and material costs. Labour stays with you
-          — every company prices labour differently, and we're not going to
-          pretend otherwise. Our job is to give you an accurate takeoff; yours
-          is to price up the work.
+          It doesn't price labour. Every company prices labour their own
+          way, and pretending otherwise would make the tool wrong more
+          often than right. It doesn't do metsec, shaftwall, or ceilings
+          yet. It doesn't replace an estimator — it gives them back the
+          morning.
         </p>
 
-        <h3>Who it's for</h3>
-        <ul>
-          <li><strong>Estimators</strong> pricing partition jobs from tender drawings</li>
-          <li><strong>Tradespeople</strong> quoting direct to customers</li>
-          <li><strong>Project managers</strong> checking supplier quotes against the spec</li>
-          <li><strong>DIY builders</strong> working out what to buy for a home project</li>
-        </ul>
+        <h3>Why I'm building it</h3>
+        <p>
+          Officially, this is my final-year dissertation. Unofficially,
+          it's the tool I wish the estimators I worked for had. If it
+          gets used, great. If the examiner pokes holes in it, better —
+          I'll fix them.
+        </p>
 
-        <p className="signoff">
-          Built by Rokas — final-year dissertation project.
+        <p className="essay-signoff">
+          — Rokas, April 2026
         </p>
       </div>
     </section>
