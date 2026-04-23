@@ -1,135 +1,244 @@
-import type { WallEstimate, ProjectTotals, MaterialPrices } from "../types";
+import type { WallEstimate, MaterialPrices, WallFormData, SharedPriceKey } from "../types";
+import type { StudSize, BoardType } from "../catalogue";
+import {
+  STUDS,
+  BOARDS,
+  FINISHES,
+  STUD_ORDER,
+  BOARD_ORDER,
+} from "../catalogue";
 
 interface Props {
   walls: WallEstimate[];
-  totals: ProjectTotals;
+  formWalls: WallFormData[];
   prices: MaterialPrices;
-  onPriceChange: (key: keyof MaterialPrices, value: number) => void;
+  onStudPriceChange: (size: StudSize, kind: "piece" | "track", value: number) => void;
+  onBoardPriceChange: (type: BoardType, value: number) => void;
+  onOtherPriceChange: (key: SharedPriceKey, value: number) => void;
 }
 
-interface Row {
+type RowKind = "heading" | "board" | "stud" | "track" | "shared";
+
+interface TableRow {
+  kind: RowKind;
+  id: string;
   label: string;
   product: string;
-  qty: (t: ProjectTotals) => number;
+  qtyTotal: number;
   unit: string;
-  priceKey: keyof MaterialPrices;
+  perWall: (i: number) => number | null; // null = wall doesn't use this variant
+  unitPrice: number;
   priceUnit: string;
-  perWall?: (w: WallEstimate) => string;
-  totalCost: (t: ProjectTotals, p: MaterialPrices) => number;
+  totalCost: number;
+  onPriceChange?: (value: number) => void;
+  isHeading?: boolean;
 }
-
-const ROWS: Row[] = [
-  {
-    label: "Plasterboard",
-    product: "Gyproc WallBoard 12.5mm",
-    qty: (t) => t.boards,
-    unit: "sheets",
-    priceKey: "board_per_sheet",
-    priceUnit: "/ sheet",
-    perWall: (w) => `${w.boards}`,
-    totalCost: (t, p) => t.boards * p.board_per_sheet,
-  },
-  {
-    label: "Studs",
-    product: "Gypframe 48 S 50 'C' Stud",
-    qty: (t) => t.studs_pieces,
-    unit: "pieces",
-    priceKey: "stud_per_piece",
-    priceUnit: "/ piece",
-    perWall: (w) => `${w.studs_pieces}`,
-    totalCost: (t, p) => t.studs_pieces * p.stud_per_piece,
-  },
-  {
-    label: "Track",
-    product: "Gypframe 50 FEC 50 Channel",
-    qty: (t) => t.track_pieces,
-    unit: "lengths",
-    priceKey: "track_per_length",
-    priceUnit: "/ length",
-    perWall: (w) => `${w.track_pieces}`,
-    totalCost: (t, p) => t.track_pieces * p.track_per_length,
-  },
-  {
-    label: "Insulation",
-    product: "Isover APR 1200 50mm",
-    qty: (t) => t.insulation_packs,
-    unit: "packs",
-    priceKey: "insulation_per_pack",
-    priceUnit: "/ pack",
-    perWall: (w) => (w.insulation_packs > 0 ? `${w.insulation_packs}` : "—"),
-    totalCost: (t, p) => t.insulation_packs * p.insulation_per_pack,
-  },
-  {
-    label: "Board screws",
-    product: "BG Drywall Screws 25mm",
-    qty: (t) => t.screws,
-    unit: "screws",
-    priceKey: "screws_per_100",
-    priceUnit: "/ 100",
-    perWall: (w) => `${w.screws}`,
-    totalCost: (t, p) => (t.screws / 100) * p.screws_per_100,
-  },
-  {
-    label: "Framing screws",
-    product: "BG Wafer Head Screws 13mm",
-    qty: (t) => t.framing_screws,
-    unit: "screws",
-    priceKey: "framing_screws_per_100",
-    priceUnit: "/ 100",
-    perWall: (w) => `${w.framing_screws}`,
-    totalCost: (t, p) => (t.framing_screws / 100) * p.framing_screws_per_100,
-  },
-  {
-    label: "Joint tape",
-    product: "Gyproc Joint Tape 150m",
-    qty: (t) => t.joint_tape_rolls,
-    unit: "rolls",
-    priceKey: "joint_tape_per_roll",
-    priceUnit: "/ roll",
-    perWall: (w) => `${w.joint_tape_rolls}`,
-    totalCost: (t, p) => t.joint_tape_rolls * p.joint_tape_per_roll,
-  },
-  {
-    label: "Jointing compound",
-    product: "Gyproc EasiFill 60 (10 kg)",
-    qty: (t) => t.easifill_bags,
-    unit: "bags",
-    priceKey: "easifill_per_bag",
-    priceUnit: "/ bag",
-    perWall: (w) => `${w.easifill_bags}`,
-    totalCost: (t, p) => t.easifill_bags * p.easifill_per_bag,
-  },
-];
 
 function fmt(n: number) {
   return `£${n.toFixed(2)}`;
 }
 
-export default function ResultsTable({ walls, totals, prices, onPriceChange }: Props) {
+export default function ResultsTable({
+  walls,
+  formWalls,
+  prices,
+  onStudPriceChange,
+  onBoardPriceChange,
+  onOtherPriceChange,
+}: Props) {
   const multiWall = walls.length > 1;
-  const grandTotal = ROWS.reduce((sum, row) => sum + row.totalCost(totals, prices), 0);
 
-  function downloadCSV() {
-    const visibleRows = ROWS.filter(row => !(row.label === "Insulation" && row.qty(totals) === 0));
-    const wallHeaders = multiWall ? walls.map((_, i) => `Wall ${i + 1}`) : [];
-    const headers = ["Material", "Product", ...wallHeaders, "Qty", "Unit", "Unit Price (£)", "Total (£)"];
+  // ── Group data by stud size + board type; aggregate the rest.
+  const boardsByType = new Map<BoardType, number>();
+  const studsBySize = new Map<StudSize, { pieces: number; track: number }>();
+  let insulation = 0;
+  let screws = 0;
+  let framing = 0;
+  let tape = 0;
+  let easifill = 0;
 
-    const dataRows = visibleRows.map(row => {
-      const perWall = multiWall ? walls.map(w => row.perWall ? row.perWall(w) : "—") : [];
-      return [
-        row.label,
-        `"${row.product}"`,
-        ...perWall,
-        row.qty(totals),
-        row.unit,
-        prices[row.priceKey].toFixed(2),
-        row.totalCost(totals, prices).toFixed(2),
-      ].join(",");
+  walls.forEach((w, i) => {
+    const form = formWalls[i];
+    if (!form) return;
+    const finish = FINISHES[form.finish];
+
+    boardsByType.set(form.board_type, (boardsByType.get(form.board_type) ?? 0) + w.boards);
+    const cur = studsBySize.get(form.stud_size) ?? { pieces: 0, track: 0 };
+    cur.pieces += w.studs_pieces;
+    cur.track += w.track_pieces;
+    studsBySize.set(form.stud_size, cur);
+
+    insulation += w.insulation_packs;
+    screws += w.screws;
+    framing += w.framing_screws;
+    if (finish.uses_tape) tape += w.joint_tape_rolls;
+    if (finish.uses_easifill) easifill += w.easifill_bags;
+  });
+
+  // ── Build rows in display order.
+  const rows: TableRow[] = [];
+
+  // Boards — one per type in use, ordered
+  BOARD_ORDER.filter((t) => boardsByType.has(t)).forEach((type) => {
+    const qty = boardsByType.get(type) ?? 0;
+    const unitPrice = prices.boards[type];
+    rows.push({
+      kind: "board",
+      id: `board-${type}`,
+      label: "Plasterboard",
+      product: BOARDS[type].name,
+      qtyTotal: qty,
+      unit: "sheets",
+      perWall: (i) => (formWalls[i]?.board_type === type ? walls[i].boards : null),
+      unitPrice,
+      priceUnit: "/ sheet",
+      totalCost: qty * unitPrice,
+      onPriceChange: (v) => onBoardPriceChange(type, v),
+    });
+  });
+
+  // Studs + matched track — grouped per size in use
+  STUD_ORDER.filter((s) => studsBySize.has(s)).forEach((size) => {
+    const agg = studsBySize.get(size)!;
+    const spec = STUDS[size];
+    const studPrice = prices.studs[size].piece;
+    const trackPrice = prices.studs[size].track;
+
+    rows.push({
+      kind: "stud",
+      id: `stud-${size}`,
+      label: `Studs (${size})`,
+      product: spec.name,
+      qtyTotal: agg.pieces,
+      unit: "pieces",
+      perWall: (i) => (formWalls[i]?.stud_size === size ? walls[i].studs_pieces : null),
+      unitPrice: studPrice,
+      priceUnit: "/ piece",
+      totalCost: agg.pieces * studPrice,
+      onPriceChange: (v) => onStudPriceChange(size, "piece", v),
     });
 
-    const totalPad = multiWall ? walls.map(() => "").join(",") + "," : "";
-    const totalRow = `Total,,,${totalPad},,, ,${grandTotal.toFixed(2)}`;
+    rows.push({
+      kind: "track",
+      id: `track-${size}`,
+      label: `Track (${size})`,
+      product: spec.track_name,
+      qtyTotal: agg.track,
+      unit: "lengths",
+      perWall: (i) => (formWalls[i]?.stud_size === size ? walls[i].track_pieces : null),
+      unitPrice: trackPrice,
+      priceUnit: "/ length",
+      totalCost: agg.track * trackPrice,
+      onPriceChange: (v) => onStudPriceChange(size, "track", v),
+    });
+  });
 
+  if (insulation > 0) {
+    rows.push({
+      kind: "shared",
+      id: "insulation",
+      label: "Insulation",
+      product: "Isover APR 1200 50 mm",
+      qtyTotal: insulation,
+      unit: "packs",
+      perWall: (i) => (formWalls[i]?.insulated ? walls[i].insulation_packs : null),
+      unitPrice: prices.insulation_per_pack,
+      priceUnit: "/ pack",
+      totalCost: insulation * prices.insulation_per_pack,
+      onPriceChange: (v) => onOtherPriceChange("insulation_per_pack", v),
+    });
+  }
+
+  if (screws > 0) {
+    rows.push({
+      kind: "shared",
+      id: "screws",
+      label: "Board screws",
+      product: "BG Drywall Screws 25 mm",
+      qtyTotal: screws,
+      unit: "screws",
+      perWall: (i) => walls[i].screws,
+      unitPrice: prices.screws_per_100,
+      priceUnit: "/ 100",
+      totalCost: (screws / 100) * prices.screws_per_100,
+      onPriceChange: (v) => onOtherPriceChange("screws_per_100", v),
+    });
+  }
+
+  if (framing > 0) {
+    rows.push({
+      kind: "shared",
+      id: "framing",
+      label: "Framing screws",
+      product: "BG Wafer Head Screws 13 mm",
+      qtyTotal: framing,
+      unit: "screws",
+      perWall: (i) => walls[i].framing_screws,
+      unitPrice: prices.framing_screws_per_100,
+      priceUnit: "/ 100",
+      totalCost: (framing / 100) * prices.framing_screws_per_100,
+      onPriceChange: (v) => onOtherPriceChange("framing_screws_per_100", v),
+    });
+  }
+
+  if (tape > 0) {
+    rows.push({
+      kind: "shared",
+      id: "tape",
+      label: "Joint tape",
+      product: "Gyproc Joint Tape 150 m",
+      qtyTotal: tape,
+      unit: "rolls",
+      perWall: (i) =>
+        FINISHES[formWalls[i]?.finish ?? "paint"].uses_tape ? walls[i].joint_tape_rolls : null,
+      unitPrice: prices.joint_tape_per_roll,
+      priceUnit: "/ roll",
+      totalCost: tape * prices.joint_tape_per_roll,
+      onPriceChange: (v) => onOtherPriceChange("joint_tape_per_roll", v),
+    });
+  }
+
+  if (easifill > 0) {
+    rows.push({
+      kind: "shared",
+      id: "easifill",
+      label: "Jointing compound",
+      product: "Gyproc EasiFill 60 (10 kg)",
+      qtyTotal: easifill,
+      unit: "bags",
+      perWall: (i) =>
+        FINISHES[formWalls[i]?.finish ?? "paint"].uses_easifill ? walls[i].easifill_bags : null,
+      unitPrice: prices.easifill_per_bag,
+      priceUnit: "/ bag",
+      totalCost: easifill * prices.easifill_per_bag,
+      onPriceChange: (v) => onOtherPriceChange("easifill_per_bag", v),
+    });
+  }
+
+  const grandTotal = rows.reduce((sum, r) => sum + r.totalCost, 0);
+
+  function downloadCSV() {
+    const wallHeaders = multiWall ? walls.map((_, i) => `Wall ${i + 1}`) : [];
+    const headers = ["Material", "Product", ...wallHeaders, "Qty", "Unit", "Unit Price (£)", "Total (£)"];
+    const dataRows = rows.map((r) => {
+      const perWall = multiWall
+        ? walls.map((_, i) => {
+            const v = r.perWall(i);
+            return v === null ? "—" : String(v);
+          })
+        : [];
+      return [
+        r.label,
+        `"${r.product}"`,
+        ...perWall,
+        r.qtyTotal,
+        r.unit,
+        r.unitPrice.toFixed(2),
+        r.totalCost.toFixed(2),
+      ].join(",");
+    });
+    const pad = multiWall ? walls.map(() => "").join(",") + "," : "";
+    const totalRow = `Total,,${pad},,,,${grandTotal.toFixed(2)}`;
     const csv = [headers.join(","), ...dataRows, totalRow].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -160,40 +269,41 @@ export default function ResultsTable({ walls, totals, prices, onPriceChange }: P
           </tr>
         </thead>
         <tbody>
-          {ROWS.map((row) => {
-            const qty = row.qty(totals);
-            const cost = row.totalCost(totals, prices);
-            const hidden = row.label === "Insulation" && qty === 0;
-            if (hidden) return null;
-
-            return (
-              <tr key={row.label}>
-                <td className="material-label">{row.label}</td>
-                <td className="product-name">{row.product}</td>
-                {multiWall && walls.map((w, i) => (
-                  <td key={i} className="qty">{row.perWall ? row.perWall(w) : "—"}</td>
-                ))}
-                <td className="qty">{qty} {row.unit}</td>
-                <td className="price-cell">
-                  <div className="price-input-wrap">
-                    <span className="currency">£</span>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={prices[row.priceKey]}
-                      onChange={(e) =>
-                        onPriceChange(row.priceKey, parseFloat(e.target.value) || 0)
-                      }
-                      className="price-input"
-                    />
-                    <span className="price-unit">{row.priceUnit}</span>
-                  </div>
-                </td>
-                <td className="total-col">{fmt(cost)}</td>
-              </tr>
-            );
-          })}
+          {rows.map((r) => (
+            <tr key={r.id}>
+              <td className="material-label">{r.label}</td>
+              <td className="product-name">{r.product}</td>
+              {multiWall &&
+                walls.map((_, i) => {
+                  const v = r.perWall(i);
+                  return (
+                    <td key={i} className="qty">
+                      {v === null ? "—" : v}
+                    </td>
+                  );
+                })}
+              <td className="qty">
+                {r.qtyTotal} {r.unit}
+              </td>
+              <td className="price-cell">
+                <div className="price-input-wrap">
+                  <span className="currency">£</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={r.unitPrice}
+                    onChange={(e) =>
+                      r.onPriceChange?.(parseFloat(e.target.value) || 0)
+                    }
+                    className="price-input"
+                  />
+                  <span className="price-unit">{r.priceUnit}</span>
+                </div>
+              </td>
+              <td className="total-col">{fmt(r.totalCost)}</td>
+            </tr>
+          ))}
         </tbody>
         <tfoot>
           <tr className="grand-total-row">
@@ -205,8 +315,8 @@ export default function ResultsTable({ walls, totals, prices, onPriceChange }: P
         </tfoot>
       </table>
       <p className="results-note">
-        Quantities include waste allowance and are rounded up to whole purchasable units.
-        Prices are indicative UK trade rates — edit to match your merchant's prices.
+        Quantities include waste and are rounded up to whole purchasable units.
+        Prices are indicative UK trade rates — edit any to match your merchant's quote.
       </p>
     </div>
   );
