@@ -1,3 +1,5 @@
+import type { StudSize, BoardType, Finish } from "./catalogue";
+
 export type Persona = "diy" | "trade" | "estimator";
 
 export interface Opening {
@@ -9,9 +11,12 @@ export interface WallFormData {
   label: string;
   length: string;
   height: string;
+  stud_size: StudSize;
   stud_spacing_mm: 300 | 600;
   sides: 1 | 2;
   layers: number;
+  board_type: BoardType;
+  finish: Finish;
   insulated: boolean;
   openings: Opening[];
   board_waste_pct: number;
@@ -79,12 +84,18 @@ export interface AgentAnalysisResult {
 }
 
 export interface MaterialPrices {
-  board_per_sheet: number;
-  stud_per_piece: number;
-  track_per_length: number;
+  studs: Record<StudSize, { piece: number; track: number }>;
+  boards: Record<BoardType, number>;
   insulation_per_pack: number;
   screws_per_100: number;
   framing_screws_per_100: number;
   joint_tape_per_roll: number;
   easifill_per_bag: number;
 }
+
+export type SharedPriceKey =
+  | "insulation_per_pack"
+  | "screws_per_100"
+  | "framing_screws_per_100"
+  | "joint_tape_per_roll"
+  | "easifill_per_bag";
