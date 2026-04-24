@@ -9,12 +9,12 @@ export default function HomePage() {
       <section className="hero-sheet">
         <div className="sheet-header">
           <div className="sheet-header-left">
-            <span className="sheet-label">Takeoff sheet</span>
-            <span className="sheet-meta">Domestic timber partitions · Gyproc / Knauf commercial trade · Worked example</span>
+            <span className="sheet-label">Worked example</span>
+            <span className="sheet-meta">Office partition · 5.4 × 2.7 m · 1 door · insulated</span>
           </div>
           <div className="sheet-header-right">
             <span className="sheet-label">RMBuild</span>
-            <span className="sheet-meta">From drawing to quote in minutes</span>
+            <span className="sheet-meta">Priced in under a minute</span>
           </div>
         </div>
 
@@ -236,7 +236,7 @@ export default function HomePage() {
         <span className="divider-label">Why this exists</span>
       </div>
 
-      {/* Story teaser — pulls reader toward /about and /stories */}
+      {/* Story teaser — pulls reader toward /about */}
       <section className="story-teaser">
         <div className="story-teaser-grid">
           <div className="story-teaser-text">
@@ -248,7 +248,6 @@ export default function HomePage() {
             </p>
             <div className="story-teaser-ctas">
               <Link to="/about" className="btn btn-text">Read the full story →</Link>
-              <Link to="/stories" className="btn btn-text">Five site stories →</Link>
             </div>
           </div>
           <blockquote className="story-teaser-quote">
