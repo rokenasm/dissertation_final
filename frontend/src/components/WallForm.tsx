@@ -1,13 +1,11 @@
 import { useState } from "react";
 import type { WallFormData, Opening } from "../types";
-import type { StudSize, BoardType, Finish } from "../catalogue";
+import type {
+  StudSize, BoardType, Finish, FrameMaterial,
+} from "../catalogue";
 import {
-  STUDS,
-  BOARDS,
-  FINISHES,
-  STUD_ORDER,
-  BOARD_ORDER,
-  FINISH_ORDER,
+  STUDS, BOARDS, FINISHES,
+  METAL_STUD_ORDER, TIMBER_STUD_ORDER, BOARD_ORDER, FINISH_ORDER,
 } from "../catalogue";
 
 interface Props {
@@ -23,6 +21,18 @@ export default function WallForm({ data, onChange, wallIndex }: Props) {
     onChange({ ...data, [key]: value });
   }
 
+  function handleFrameChange(frame: FrameMaterial) {
+    // Keep the wall valid when switching frame: pick a sensible stud + spacing.
+    const defaultSize: StudSize = frame === "metal" ? "70S" : "T38x89";
+    const defaultSpacing: 300 | 400 | 600 = frame === "metal" ? 600 : 400;
+    onChange({
+      ...data,
+      frame_material: frame,
+      stud_size: defaultSize,
+      stud_spacing_mm: defaultSpacing,
+    });
+  }
+
   function addOpening() {
     const w = parseFloat(openingInput.width);
     const h = parseFloat(openingInput.height);
@@ -36,8 +46,25 @@ export default function WallForm({ data, onChange, wallIndex }: Props) {
     onChange({ ...data, openings: data.openings.filter((_, i) => i !== index) });
   }
 
+  const studOptions = data.frame_material === "metal" ? METAL_STUD_ORDER : TIMBER_STUD_ORDER;
+  const spacingOptions: (300 | 400 | 600)[] =
+    data.frame_material === "metal" ? [300, 600] : [400, 600];
+
   return (
     <div className="wall-form">
+      <div className="form-row">
+        <label className="wall-label-input">
+          Name <span className="optional-hint">— optional</span>
+          <input
+            type="text"
+            maxLength={60}
+            placeholder="e.g. Bedroom partition"
+            value={data.label}
+            onChange={(e) => set("label", e.target.value)}
+          />
+        </label>
+      </div>
+
       <div className="form-row">
         <label>
           Length (m)
@@ -63,20 +90,47 @@ export default function WallForm({ data, onChange, wallIndex }: Props) {
         </label>
       </div>
 
+      <div className="form-row">
+        <fieldset className="frame-fieldset">
+          <legend>Frame</legend>
+          {(["metal", "timber"] as const).map((f) => (
+            <label key={f} className="inline-label frame-label">
+              <input
+                type="radio"
+                name={`frame_${wallIndex}`}
+                value={f}
+                checked={data.frame_material === f}
+                onChange={() => handleFrameChange(f)}
+              />
+              <span>
+                <strong>{f === "metal" ? "Metal" : "Timber"}</strong>
+                <em>
+                  {f === "metal"
+                    ? "Gypframe C-studs — commercial / fit-out"
+                    : "CLS timber studs — domestic partitions"}
+                </em>
+              </span>
+            </label>
+          ))}
+        </fieldset>
+      </div>
+
       <div className="form-row form-row-selects">
         <label className="select-label">
-          <span className="select-head">Metal</span>
+          <span className="select-head">
+            {data.frame_material === "metal" ? "Metal stud" : "Timber stud"}
+          </span>
           <select
             value={data.stud_size}
             onChange={(e) => set("stud_size", e.target.value as StudSize)}
           >
-            {STUD_ORDER.map((size) => (
+            {studOptions.map((size) => (
               <option key={size} value={size}>
-                {size} — {STUDS[size].partition_label}
+                {size.replace("T", "")} — {STUDS[size].partition_label}
               </option>
             ))}
           </select>
-          <span className="select-foot">{STUDS[data.stud_size].name}</span>
+          <span className="select-foot">{STUDS[data.stud_size].bg_name}</span>
         </label>
 
         <label className="select-label">
@@ -87,18 +141,18 @@ export default function WallForm({ data, onChange, wallIndex }: Props) {
           >
             {BOARD_ORDER.map((type) => (
               <option key={type} value={type}>
-                {BOARDS[type].name.replace("Gyproc ", "").replace(" 12.5 mm", "")} — {BOARDS[type].tagline}
+                {BOARDS[type].bg_name.replace("Gyproc ", "")} — {BOARDS[type].tagline}
               </option>
             ))}
           </select>
-          <span className="select-foot">{BOARDS[data.board_type].name}</span>
+          <span className="select-foot">{BOARDS[data.board_type].bg_name}</span>
         </label>
       </div>
 
       <div className="form-row">
         <fieldset>
           <legend>Stud spacing</legend>
-          {([300, 600] as const).map((s) => (
+          {spacingOptions.map((s) => (
             <label key={s} className="inline-label">
               <input
                 type="radio"
