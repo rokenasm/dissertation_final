@@ -63,8 +63,8 @@ class WallInputModel(BaseModel):
     @field_validator("stud_spacing_mm")
     @classmethod
     def validate_stud_spacing(cls, v: int) -> int:
-        if v not in (300, 600):
-            raise ValueError(f"Stud spacing must be 300 or 600 mm, got {v}")
+        if v not in (300, 400, 600):
+            raise ValueError(f"Stud spacing must be 300, 400 or 600 mm, got {v}")
         return v
 
     @field_validator("sides")

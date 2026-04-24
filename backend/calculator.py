@@ -66,7 +66,9 @@ FRAMING_SCREWS_PER_STUD: int = 2       # 13mm wafer-head — one at top, one at 
 JOINT_TAPE_ROLL_M: float = 150.0       # Gyproc Joint Tape — metres per roll
 EASIFILL_COVERAGE_M2: float = 40.0     # Gyproc EasiFill 60 — m² per 10 kg bag
 
-VALID_STUD_SPACINGS_MM: tuple = (300, 600)
+VALID_STUD_SPACINGS_MM: tuple = (300, 400, 600)
+# 300/600: British Gypsum metal partitions (A206001).
+# 400: UK standard for domestic timber studwork (NHBC).
 
 # Each opening (door, window) needs one trimmer stud each side = 2 extra studs
 JAMB_STUDS_PER_OPENING: int = 2
