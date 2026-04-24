@@ -10,7 +10,7 @@ export default function HomePage() {
         <div className="sheet-header">
           <div className="sheet-header-left">
             <span className="sheet-label">Takeoff sheet</span>
-            <span className="sheet-meta">Metal &amp; timber partitions · Gyproc / Knauf / CLS · Worked example</span>
+            <span className="sheet-meta">Domestic timber partitions · Gyproc / Knauf commercial trade · Worked example</span>
           </div>
           <div className="sheet-header-right">
             <span className="sheet-label">RMBuild</span>
@@ -21,14 +21,15 @@ export default function HomePage() {
         <div className="sheet-body">
           <div className="sheet-text">
             <h1 className="sheet-h1">
-              A material takeoff tool <br />
-              for drylining partitions, <br />
-              <em>written by a labourer.</em>
+              Price your <em>partition wall</em> <br />
+              before you go <br />
+              to the merchant.
             </h1>
             <p className="sheet-lead">
-              Upload a drawing. Read the walls. Price the job. Covers metal
-              studwork (Gyproc / Knauf) and timber partitions (CLS), with
-              every number tied to a published spec and every price editable.
+              Built for DIY first — bedroom partitions, loft studs, box rooms.
+              Type the length and height, add any doors, and you get a full
+              material list with UK merchant prices. Commercial trade mode
+              (Gyproc / Knauf metal systems) is one click away.
             </p>
             <div className="sheet-ctas">
               <Link to="/estimator" className="btn btn-primary">Open the estimator →</Link>
