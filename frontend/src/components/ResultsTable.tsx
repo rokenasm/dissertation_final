@@ -1,141 +1,283 @@
-import type { WallEstimate, MaterialPrices, WallFormData, SharedPriceKey } from "../types";
-import type { StudSize, BoardType } from "../catalogue";
+import type {
+  WallEstimate, MaterialPrices, WallFormData, ProjectSpec,
+} from "../types";
+import type {
+  StudSize, BoardType, ScrewLength, MetalStudSize, TimberStudSize,
+} from "../catalogue";
 import {
-  STUDS,
-  BOARDS,
-  FINISHES,
-  STUD_ORDER,
-  BOARD_ORDER,
+  STUDS, BOARDS, FINISHES, SCREWS, TAPES, JOINTING, FRAMING_SCREWS,
+  CORNER_BEAD, ACOUSTIC_SEALANT, PERIMETER_FIXINGS,
+  SKIM_PLASTER, DRYWALL_SEALER, VAT_RATE,
+  METAL_STUD_ORDER, TIMBER_STUD_ORDER, BOARD_ORDER,
+  pickBoardScrewLength, isTimber,
 } from "../catalogue";
 
 interface Props {
   walls: WallEstimate[];
   formWalls: WallFormData[];
   prices: MaterialPrices;
-  onStudPriceChange: (size: StudSize, kind: "piece" | "track", value: number) => void;
-  onBoardPriceChange: (type: BoardType, value: number) => void;
-  onOtherPriceChange: (key: SharedPriceKey, value: number) => void;
+  spec: ProjectSpec;
+  onMetalStudPriceChange: (size: MetalStudSize, kind: "piece" | "track", value: number) => void;
+  onTimberStudPriceChange: (size: TimberStudSize, value: number) => void;
+  onBoardPriceChange: (type: BoardType, brand: "bg" | "knauf", value: number) => void;
+  onScrewPriceChange: (len: ScrewLength, value: number) => void;
+  onTapePriceChange: (value: number) => void;
+  onJointingPriceChange: (value: number) => void;
+  onInsulationPriceChange: (value: number) => void;
+  onFramingScrewPriceChange: (value: number) => void;
+  onCornerBeadPriceChange: (value: number) => void;
+  onAcousticSealantPriceChange: (value: number) => void;
+  onPerimeterFixingsPriceChange: (value: number) => void;
+  onSkimPlasterPriceChange: (value: number) => void;
+  onDrywallSealerPriceChange: (value: number) => void;
+  onResetPrices: () => void;
 }
 
-type RowKind = "heading" | "board" | "stud" | "track" | "shared";
-
 interface TableRow {
-  kind: RowKind;
   id: string;
   label: string;
   product: string;
   qtyTotal: number;
   unit: string;
-  perWall: (i: number) => number | null; // null = wall doesn't use this variant
+  perWall: (i: number) => number | null;
   unitPrice: number;
   priceUnit: string;
   totalCost: number;
   onPriceChange?: (value: number) => void;
-  isHeading?: boolean;
 }
 
 function fmt(n: number) {
   return `£${n.toFixed(2)}`;
 }
 
+function ceil(n: number) {
+  return Math.ceil(n - 1e-9);
+}
+
 export default function ResultsTable({
   walls,
   formWalls,
   prices,
-  onStudPriceChange,
+  spec,
+  onMetalStudPriceChange,
+  onTimberStudPriceChange,
   onBoardPriceChange,
-  onOtherPriceChange,
+  onScrewPriceChange,
+  onTapePriceChange,
+  onJointingPriceChange,
+  onInsulationPriceChange,
+  onFramingScrewPriceChange,
+  onCornerBeadPriceChange,
+  onAcousticSealantPriceChange,
+  onPerimeterFixingsPriceChange,
+  onSkimPlasterPriceChange,
+  onDrywallSealerPriceChange,
+  onResetPrices,
 }: Props) {
   const multiWall = walls.length > 1;
 
-  // ── Group data by stud size + board type; aggregate the rest.
+  // ── Brand-aware board name/price getters
+  const boardName = (t: BoardType) =>
+    spec.brand === "bg" ? BOARDS[t].bg_name : BOARDS[t].knauf_name;
+  const boardPrice = (t: BoardType) =>
+    spec.brand === "bg" ? prices.boards[t].bg : prices.boards[t].knauf;
+
+  // ── Aggregators keyed by variant
   const boardsByType = new Map<BoardType, number>();
-  const studsBySize = new Map<StudSize, { pieces: number; track: number }>();
+  const studsBySize = new Map<StudSize, { pieces: number; trackPieces: number; nogginPieces: number }>();
+  const screwsByLength = new Map<ScrewLength, number>();
+  let framingScrews = 0;
   let insulation = 0;
-  let screws = 0;
-  let framing = 0;
-  let tape = 0;
-  let easifill = 0;
+  let tapeMeters = 0;      // recomputed client-side from raw geometry
+  let jointingArea = 0;    // total m² of boarding that wants jointing
+  let cornerBeadMeters = 0; // 2 verticals + 1 head per opening (paint/skim only)
+  let sealantMeters = 0;    // head + sole + 2 abutments per wall
+  let perimeterFixings = 0; // anchors at 600 mm centres along head + sole
+  let skimArea = 0;         // total m² of board that wants a skim coat
+
+  // Per-wall screw length lookup (for perWall column)
+  const screwLenForWall: ScrewLength[] = [];
 
   walls.forEach((w, i) => {
-    const form = formWalls[i];
-    if (!form) return;
-    const finish = FINISHES[form.finish];
+    const f = formWalls[i];
+    if (!f) { screwLenForWall.push("25mm"); return; }
 
-    boardsByType.set(form.board_type, (boardsByType.get(form.board_type) ?? 0) + w.boards);
-    const cur = studsBySize.get(form.stud_size) ?? { pieces: 0, track: 0 };
-    cur.pieces += w.studs_pieces;
-    cur.track += w.track_pieces;
-    studsBySize.set(form.stud_size, cur);
+    const finish = FINISHES[f.finish];
+    const studSpec = STUDS[f.stud_size];
 
+    // Boards
+    boardsByType.set(f.board_type, (boardsByType.get(f.board_type) ?? 0) + w.boards);
+
+    // Studs & track/plate
+    // Backend's track_linear_m is raw metres-with-waste; divide by the correct
+    // track length for this stud (metal = 3.6 m, timber plate = 3.0 m).
+    const trackPiecesCorrect = ceil(w.track_linear_m / studSpec.track_length_m);
+
+    // Noggins — one row per wall, metres equal to wall length (with waste),
+    // cut from 3 m CLS timber.
+    const nogginPieces = studSpec.has_noggins
+      ? ceil((w.length_m * (1 + f.stud_waste_pct / 100)) / 3.0)
+      : 0;
+
+    const existing = studsBySize.get(f.stud_size) ?? { pieces: 0, trackPieces: 0, nogginPieces: 0 };
+    existing.pieces += w.studs_pieces;
+    existing.trackPieces += trackPiecesCorrect;
+    existing.nogginPieces += nogginPieces;
+    studsBySize.set(f.stud_size, existing);
+
+    // Screws — pick length, bucket this wall's count
+    const screwLen = pickBoardScrewLength(f.frame_material, f.board_type, f.layers);
+    screwLenForWall.push(screwLen);
+    screwsByLength.set(screwLen, (screwsByLength.get(screwLen) ?? 0) + w.screws);
+
+    // Framing screws — metal only
+    if (f.frame_material === "metal") framingScrews += w.framing_screws;
+
+    // Insulation
     insulation += w.insulation_packs;
-    screws += w.screws;
-    framing += w.framing_screws;
-    if (finish.uses_tape) tape += w.joint_tape_rolls;
-    if (finish.uses_easifill) easifill += w.easifill_bags;
+
+    // Tape — recompute raw metres so we can divide by the chosen roll length.
+    if (finish.uses_tape) {
+      const length = w.length_m;
+      const height = w.height_m;
+      const verticalJoints = Math.max(0, ceil(length / 1.2) - 1);
+      const horizontalRows = Math.max(0, ceil(height / 2.4) - 1);
+      const raw = (verticalJoints * height + horizontalRows * length) * f.sides * f.layers;
+      tapeMeters += raw * (1 + f.joint_tape_waste_pct / 100);
+    }
+
+    // Jointing — sum total boarding area (with waste) so we can divide by
+    // the chosen product's coverage.
+    if (finish.uses_jointing) {
+      const boardingM2 = w.boarded_area_m2 * f.sides * f.layers;
+      jointingArea += boardingM2 * (1 + f.easifill_waste_pct / 100);
+    }
+
+    // Accessories:
+    //   Corner bead per opening = 2 × opening height + 1 × opening width
+    //   (two reveals + lintel). Only for paint / skim finishes — no bead
+    //   needed under tiles or on bare service walls.
+    if (f.finish === "paint" || f.finish === "skim") {
+      for (const op of f.openings) {
+        cornerBeadMeters += 2 * op.height + op.width;
+      }
+    }
+    //   Acoustic sealant = perimeter of partition (head + sole + 2 abutments).
+    sealantMeters += 2 * w.length_m + 2 * w.height_m;
+    //   Perimeter fixings = anchors at 600 mm centres, floor + ceiling.
+    perimeterFixings += 2 * ceil(w.length_m / 0.6);
+    //   Skim — full board face gets a 2 mm plaster skim (primed first).
+    if (f.finish === "skim") {
+      skimArea += w.boarded_area_m2 * f.sides * f.layers;
+    }
   });
 
-  // ── Build rows in display order.
+  const tape = TAPES[spec.tape_type];
+  const tapeRolls = tapeMeters > 0 ? ceil(tapeMeters / tape.roll_length_m) : 0;
+
+  const jointing = JOINTING[spec.jointing_product];
+  const jointingUnits = jointingArea > 0 ? ceil(jointingArea / jointing.coverage_m2_per_unit) : 0;
+
+  // ── Build rows in display order
   const rows: TableRow[] = [];
 
-  // Boards — one per type in use, ordered
+  // Boards
   BOARD_ORDER.filter((t) => boardsByType.has(t)).forEach((type) => {
     const qty = boardsByType.get(type) ?? 0;
-    const unitPrice = prices.boards[type];
+    const price = boardPrice(type);
     rows.push({
-      kind: "board",
       id: `board-${type}`,
       label: "Plasterboard",
-      product: BOARDS[type].name,
+      product: boardName(type),
       qtyTotal: qty,
       unit: "sheets",
       perWall: (i) => (formWalls[i]?.board_type === type ? walls[i].boards : null),
-      unitPrice,
+      unitPrice: price,
       priceUnit: "/ sheet",
-      totalCost: qty * unitPrice,
-      onPriceChange: (v) => onBoardPriceChange(type, v),
+      totalCost: qty * price,
+      onPriceChange: (v) => onBoardPriceChange(type, spec.brand, v),
     });
   });
 
-  // Studs + matched track — grouped per size in use
-  STUD_ORDER.filter((s) => studsBySize.has(s)).forEach((size) => {
+  // Studs + track/plate + noggins, grouped per stud size
+  [...METAL_STUD_ORDER, ...TIMBER_STUD_ORDER].filter((s) => studsBySize.has(s)).forEach((size) => {
     const agg = studsBySize.get(size)!;
-    const spec = STUDS[size];
-    const studPrice = prices.studs[size].piece;
-    const trackPrice = prices.studs[size].track;
+    const studSpec = STUDS[size];
+    const timber = isTimber(size);
+
+    // Prices
+    const studPrice = timber
+      ? prices.timber_studs[size as TimberStudSize]
+      : prices.metal_studs[size as MetalStudSize].piece;
+    const trackPrice = timber
+      ? prices.timber_studs[size as TimberStudSize] // plate = same timber as stud
+      : prices.metal_studs[size as MetalStudSize].track;
+
+    const studProductName = (timber || spec.brand === "bg" || !studSpec.knauf_name)
+      ? studSpec.bg_name
+      : studSpec.knauf_name;
+    const trackProductName = (timber || spec.brand === "bg" || !studSpec.track_knauf_name)
+      ? studSpec.track_bg_name
+      : studSpec.track_knauf_name;
+
+    const studLabel = timber ? `Timber studs (${size.replace("T", "")})` : `Studs (${size})`;
+    const trackLabel = timber ? `Plates (${size.replace("T", "")})` : `Track (${size})`;
 
     rows.push({
-      kind: "stud",
       id: `stud-${size}`,
-      label: `Studs (${size})`,
-      product: spec.name,
+      label: studLabel,
+      product: studProductName,
       qtyTotal: agg.pieces,
-      unit: "pieces",
+      unit: timber ? "lengths" : "pieces",
       perWall: (i) => (formWalls[i]?.stud_size === size ? walls[i].studs_pieces : null),
       unitPrice: studPrice,
-      priceUnit: "/ piece",
+      priceUnit: timber ? "/ length" : "/ piece",
       totalCost: agg.pieces * studPrice,
-      onPriceChange: (v) => onStudPriceChange(size, "piece", v),
+      onPriceChange: timber
+        ? (v) => onTimberStudPriceChange(size as TimberStudSize, v)
+        : (v) => onMetalStudPriceChange(size as MetalStudSize, "piece", v),
     });
 
     rows.push({
-      kind: "track",
       id: `track-${size}`,
-      label: `Track (${size})`,
-      product: spec.track_name,
-      qtyTotal: agg.track,
+      label: trackLabel,
+      product: trackProductName,
+      qtyTotal: agg.trackPieces,
       unit: "lengths",
-      perWall: (i) => (formWalls[i]?.stud_size === size ? walls[i].track_pieces : null),
+      perWall: (i) => {
+        if (formWalls[i]?.stud_size !== size) return null;
+        return ceil(walls[i].track_linear_m / studSpec.track_length_m);
+      },
       unitPrice: trackPrice,
       priceUnit: "/ length",
-      totalCost: agg.track * trackPrice,
-      onPriceChange: (v) => onStudPriceChange(size, "track", v),
+      totalCost: agg.trackPieces * trackPrice,
+      onPriceChange: timber
+        ? (v) => onTimberStudPriceChange(size as TimberStudSize, v)
+        : (v) => onMetalStudPriceChange(size as MetalStudSize, "track", v),
     });
+
+    if (timber && agg.nogginPieces > 0) {
+      rows.push({
+        id: `noggin-${size}`,
+        label: `Noggins (${size.replace("T", "")})`,
+        product: `${studSpec.bg_name} — offcut for mid-height noggins`,
+        qtyTotal: agg.nogginPieces,
+        unit: "lengths",
+        perWall: (i) => {
+          if (formWalls[i]?.stud_size !== size) return null;
+          const f = formWalls[i];
+          return ceil((walls[i].length_m * (1 + f.stud_waste_pct / 100)) / 3.0);
+        },
+        unitPrice: studPrice,
+        priceUnit: "/ length",
+        totalCost: agg.nogginPieces * studPrice,
+        onPriceChange: (v) => onTimberStudPriceChange(size as TimberStudSize, v),
+      });
+    }
   });
 
   if (insulation > 0) {
     rows.push({
-      kind: "shared",
       id: "insulation",
       label: "Insulation",
       product: "Isover APR 1200 50 mm",
@@ -145,77 +287,162 @@ export default function ResultsTable({
       unitPrice: prices.insulation_per_pack,
       priceUnit: "/ pack",
       totalCost: insulation * prices.insulation_per_pack,
-      onPriceChange: (v) => onOtherPriceChange("insulation_per_pack", v),
+      onPriceChange: onInsulationPriceChange,
     });
   }
 
-  if (screws > 0) {
-    rows.push({
-      kind: "shared",
-      id: "screws",
-      label: "Board screws",
-      product: "BG Drywall Screws 25 mm",
-      qtyTotal: screws,
-      unit: "screws",
-      perWall: (i) => walls[i].screws,
-      unitPrice: prices.screws_per_100,
-      priceUnit: "/ 100",
-      totalCost: (screws / 100) * prices.screws_per_100,
-      onPriceChange: (v) => onOtherPriceChange("screws_per_100", v),
+  // Board screws — grouped by length
+  (Object.keys(SCREWS) as ScrewLength[])
+    .filter((l) => (screwsByLength.get(l) ?? 0) > 0)
+    .forEach((len) => {
+      const qty = screwsByLength.get(len)!;
+      const spec_ = SCREWS[len];
+      const productName = spec.brand === "bg" ? spec_.bg_name : spec_.knauf_name;
+      const price = prices.screws[len];
+      rows.push({
+        id: `screw-${len}`,
+        label: `Board screws ${len.replace("_coarse", " coarse").replace("mm", " mm")}`,
+        product: productName,
+        qtyTotal: qty,
+        unit: "screws",
+        perWall: (i) => (screwLenForWall[i] === len ? walls[i].screws : null),
+        unitPrice: price,
+        priceUnit: "/ 100",
+        totalCost: (qty / 100) * price,
+        onPriceChange: (v) => onScrewPriceChange(len, v),
+      });
     });
-  }
 
-  if (framing > 0) {
+  // Framing screws — metal walls only
+  if (framingScrews > 0) {
     rows.push({
-      kind: "shared",
       id: "framing",
       label: "Framing screws",
-      product: "BG Wafer Head Screws 13 mm",
-      qtyTotal: framing,
+      product: spec.brand === "bg" ? FRAMING_SCREWS.bg_name : FRAMING_SCREWS.knauf_name,
+      qtyTotal: framingScrews,
       unit: "screws",
-      perWall: (i) => walls[i].framing_screws,
+      perWall: (i) =>
+        formWalls[i]?.frame_material === "metal" ? walls[i].framing_screws : null,
       unitPrice: prices.framing_screws_per_100,
       priceUnit: "/ 100",
-      totalCost: (framing / 100) * prices.framing_screws_per_100,
-      onPriceChange: (v) => onOtherPriceChange("framing_screws_per_100", v),
+      totalCost: (framingScrews / 100) * prices.framing_screws_per_100,
+      onPriceChange: onFramingScrewPriceChange,
     });
   }
 
-  if (tape > 0) {
+  if (tapeRolls > 0) {
+    const tapeName = spec.brand === "bg" ? tape.bg_name : tape.knauf_name;
     rows.push({
-      kind: "shared",
       id: "tape",
       label: "Joint tape",
-      product: "Gyproc Joint Tape 150 m",
-      qtyTotal: tape,
+      product: tapeName,
+      qtyTotal: tapeRolls,
       unit: "rolls",
-      perWall: (i) =>
-        FINISHES[formWalls[i]?.finish ?? "paint"].uses_tape ? walls[i].joint_tape_rolls : null,
-      unitPrice: prices.joint_tape_per_roll,
+      perWall: () => null, // tape is project-level; per-wall column left blank
+      unitPrice: prices.tape[spec.tape_type],
       priceUnit: "/ roll",
-      totalCost: tape * prices.joint_tape_per_roll,
-      onPriceChange: (v) => onOtherPriceChange("joint_tape_per_roll", v),
+      totalCost: tapeRolls * prices.tape[spec.tape_type],
+      onPriceChange: onTapePriceChange,
     });
   }
 
-  if (easifill > 0) {
+  // Accessories — always include if there's at least one valid wall
+  if (cornerBeadMeters > 0) {
+    const pieces = ceil(cornerBeadMeters / CORNER_BEAD.length_m);
     rows.push({
-      kind: "shared",
-      id: "easifill",
-      label: "Jointing compound",
-      product: "Gyproc EasiFill 60 (10 kg)",
-      qtyTotal: easifill,
+      id: "corner-bead",
+      label: "Corner beads",
+      product: CORNER_BEAD.name,
+      qtyTotal: pieces,
+      unit: "lengths",
+      perWall: () => null,
+      unitPrice: prices.corner_bead_per_length,
+      priceUnit: "/ length",
+      totalCost: pieces * prices.corner_bead_per_length,
+      onPriceChange: onCornerBeadPriceChange,
+    });
+  }
+
+  if (sealantMeters > 0) {
+    const cartridges = ceil(sealantMeters / ACOUSTIC_SEALANT.coverage_m_per_cartridge);
+    rows.push({
+      id: "acoustic-sealant",
+      label: "Acoustic sealant",
+      product: ACOUSTIC_SEALANT.name,
+      qtyTotal: cartridges,
+      unit: "cartridges",
+      perWall: () => null,
+      unitPrice: prices.acoustic_sealant_per_cartridge,
+      priceUnit: "/ cartridge",
+      totalCost: cartridges * prices.acoustic_sealant_per_cartridge,
+      onPriceChange: onAcousticSealantPriceChange,
+    });
+  }
+
+  if (perimeterFixings > 0) {
+    rows.push({
+      id: "perimeter-fixings",
+      label: "Perimeter fixings",
+      product: PERIMETER_FIXINGS.name,
+      qtyTotal: perimeterFixings,
+      unit: "fixings",
+      perWall: () => null,
+      unitPrice: prices.perimeter_fixings_per_100,
+      priceUnit: "/ 100",
+      totalCost: (perimeterFixings / 100) * prices.perimeter_fixings_per_100,
+      onPriceChange: onPerimeterFixingsPriceChange,
+    });
+  }
+
+  // Skim plaster + primer (only when at least one wall has finish = skim)
+  if (skimArea > 0) {
+    const sealerCans = ceil(skimArea / DRYWALL_SEALER.coverage_m2_per_can);
+    rows.push({
+      id: "drywall-sealer",
+      label: "Drywall primer",
+      product: DRYWALL_SEALER.name,
+      qtyTotal: sealerCans,
+      unit: "cans",
+      perWall: () => null,
+      unitPrice: prices.drywall_sealer_per_can,
+      priceUnit: "/ can",
+      totalCost: sealerCans * prices.drywall_sealer_per_can,
+      onPriceChange: onDrywallSealerPriceChange,
+    });
+
+    const plasterBags = ceil(skimArea * 1.1 / SKIM_PLASTER.coverage_m2_per_bag);
+    rows.push({
+      id: "skim-plaster",
+      label: "Skim plaster",
+      product: SKIM_PLASTER.name,
+      qtyTotal: plasterBags,
       unit: "bags",
-      perWall: (i) =>
-        FINISHES[formWalls[i]?.finish ?? "paint"].uses_easifill ? walls[i].easifill_bags : null,
-      unitPrice: prices.easifill_per_bag,
+      perWall: () => null,
+      unitPrice: prices.skim_plaster_per_bag,
       priceUnit: "/ bag",
-      totalCost: easifill * prices.easifill_per_bag,
-      onPriceChange: (v) => onOtherPriceChange("easifill_per_bag", v),
+      totalCost: plasterBags * prices.skim_plaster_per_bag,
+      onPriceChange: onSkimPlasterPriceChange,
+    });
+  }
+
+  if (jointingUnits > 0) {
+    rows.push({
+      id: "jointing",
+      label: "Jointing compound",
+      product: `${jointing.name} (${jointing.unit_label})`,
+      qtyTotal: jointingUnits,
+      unit: jointing.unit_label.includes("tub") ? "tubs" : "bags",
+      perWall: () => null,
+      unitPrice: prices.jointing[spec.jointing_product],
+      priceUnit: `/ ${jointing.unit_label.includes("tub") ? "tub" : "bag"}`,
+      totalCost: jointingUnits * prices.jointing[spec.jointing_product],
+      onPriceChange: onJointingPriceChange,
     });
   }
 
   const grandTotal = rows.reduce((sum, r) => sum + r.totalCost, 0);
+  const vatAmount = grandTotal * VAT_RATE;
+  const grandTotalIncVat = grandTotal + vatAmount;
 
   function downloadCSV() {
     const wallHeaders = multiWall ? walls.map((_, i) => `Wall ${i + 1}`) : [];
@@ -253,10 +480,34 @@ export default function ResultsTable({
     <div className="results">
       <div className="results-header">
         <h2>Material Estimate</h2>
-        <button type="button" className="export-btn" onClick={downloadCSV}>
-          Export CSV
-        </button>
+        <div className="results-header-actions">
+          <button type="button" className="reset-prices-btn" onClick={onResetPrices}>
+            Reset prices
+          </button>
+          <button type="button" className="export-btn" onClick={downloadCSV}>
+            Export CSV
+          </button>
+        </div>
       </div>
+
+      {/* Hero total — the number the user actually cares about */}
+      <div className="total-hero">
+        <div className="total-hero-main">
+          <span className="total-hero-label">Total incl. VAT (20%)</span>
+          <span className="total-hero-value">{fmt(grandTotalIncVat)}</span>
+        </div>
+        <div className="total-hero-side">
+          <div>
+            <span className="total-hero-sub-label">Materials ex VAT</span>
+            <span className="total-hero-sub-value">{fmt(grandTotal)}</span>
+          </div>
+          <div>
+            <span className="total-hero-sub-label">VAT @ 20%</span>
+            <span className="total-hero-sub-value">{fmt(vatAmount)}</span>
+          </div>
+        </div>
+      </div>
+
       <table className="results-table">
         <thead>
           <tr>
@@ -308,9 +559,21 @@ export default function ResultsTable({
         <tfoot>
           <tr className="grand-total-row">
             <td colSpan={multiWall ? walls.length + 4 : 4} className="grand-total-label">
-              Total estimated cost
+              Materials ex VAT
             </td>
             <td className="grand-total-value">{fmt(grandTotal)}</td>
+          </tr>
+          <tr className="vat-row">
+            <td colSpan={multiWall ? walls.length + 4 : 4} className="grand-total-label">
+              VAT @ 20%
+            </td>
+            <td className="grand-total-value">{fmt(vatAmount)}</td>
+          </tr>
+          <tr className="grand-total-row grand-total-row--final">
+            <td colSpan={multiWall ? walls.length + 4 : 4} className="grand-total-label">
+              Total incl. VAT
+            </td>
+            <td className="grand-total-value">{fmt(grandTotalIncVat)}</td>
           </tr>
         </tfoot>
       </table>
