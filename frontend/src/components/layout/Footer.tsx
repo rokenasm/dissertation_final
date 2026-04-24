@@ -12,18 +12,16 @@ export default function Footer() {
         <div className="footer-col">
           <h4>Product</h4>
           <Link to="/estimator">Estimator</Link>
-          <Link to="/changelog">Changelog</Link>
         </div>
         <div className="footer-col">
           <h4>Read</h4>
           <Link to="/about">About</Link>
-          <Link to="/stories">Site stories</Link>
           <Link to="/contact">Contact</Link>
         </div>
         <div className="footer-col">
           <h4>Spec</h4>
           <a href="https://www.british-gypsum.com" target="_blank" rel="noreferrer">British Gypsum</a>
-          <a href="https://www.gyproc.co.uk" target="_blank" rel="noreferrer">Gyproc Spec</a>
+          <a href="https://www.knauf.co.uk" target="_blank" rel="noreferrer">Knauf UK</a>
         </div>
       </div>
       <div className="footer-bottom">
