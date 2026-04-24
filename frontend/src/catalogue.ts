@@ -6,18 +6,23 @@
 // Materials Market, Insulation Superstore). Editable inline in the takeoff —
 // users should confirm with their own merchant before ordering.
 
-export type MetalStudSize = "48S" | "60S" | "70S" | "92S" | "146S";
+export type MetalStudSize =
+  | "48S" | "60S" | "70S" | "92S" | "146S"
+  | "70I" | "92I" | "146I";
 export type TimberStudSize = "T38x63" | "T38x89";
 export type StudSize = MetalStudSize | TimberStudSize;
 
 export type FrameMaterial = "metal" | "timber";
-export type BoardType = "standard" | "mr" | "fireline" | "soundbloc" | "duraline";
+export type BoardType =
+  | "standard" | "mr" | "fireline" | "soundbloc" | "duraline"
+  | "glasroc_s" | "glasroc_f" | "glasroc_h";
 export type Finish = "paint" | "skim" | "tile" | "none";
 export type Brand = "bg" | "knauf";
 export type TapeType = "paper" | "scrim";
 export type JointingProduct =
   | "easifill"
   | "joint_filler"
+  | "joint_cement"
   | "promix"
   | "uniflott"
   | "fillfinish";
@@ -101,6 +106,42 @@ export const STUDS: Record<StudSize, StudSpec> = {
     track_length_m: 3.6,
     has_noggins: false,
   },
+  "70I": {
+    frame_material: "metal",
+    partition_label: "up to 4.2 m — I-stud, heavier duty than 70 S",
+    bg_name: "Gypframe 70 I 70 'I' Stud 3 m",
+    knauf_name: null,
+    stud_price: 8.50,
+    track_bg_name: "Gypframe 72 FEC 70 Channel 3.6 m",
+    track_knauf_name: null,
+    track_price: 9.80,
+    track_length_m: 3.6,
+    has_noggins: false,
+  },
+  "92I": {
+    frame_material: "metal",
+    partition_label: "up to 5.4 m — I-stud, commercial tall walls",
+    bg_name: "Gypframe 92 I 70 'I' Stud 3 m",
+    knauf_name: null,
+    stud_price: 12.00,
+    track_bg_name: "Gypframe 94 FEC 70 Channel 3.6 m",
+    track_knauf_name: null,
+    track_price: 12.50,
+    track_length_m: 3.6,
+    has_noggins: false,
+  },
+  "146I": {
+    frame_material: "metal",
+    partition_label: "up to 8.5 m — I-stud, high-bay / atrium",
+    bg_name: "Gypframe 146 I 70 'I' Stud 3 m",
+    knauf_name: null,
+    stud_price: 18.00,
+    track_bg_name: "Gypframe 148 FEC 70 Channel 3.6 m",
+    track_knauf_name: null,
+    track_price: 16.50,
+    track_length_m: 3.6,
+    has_noggins: false,
+  },
   "T38x63": {
     frame_material: "timber",
     partition_label: "domestic — CLS 3×2, light partitions",
@@ -127,7 +168,10 @@ export const STUDS: Record<StudSize, StudSpec> = {
   },
 };
 
-export const METAL_STUD_ORDER: MetalStudSize[] = ["48S", "60S", "70S", "92S", "146S"];
+export const METAL_STUD_ORDER: MetalStudSize[] = [
+  "48S", "60S", "70S", "92S", "146S",
+  "70I", "92I", "146I",
+];
 export const TIMBER_STUD_ORDER: TimberStudSize[] = ["T38x63", "T38x89"];
 export const STUD_ORDER: StudSize[] = [...METAL_STUD_ORDER, ...TIMBER_STUD_ORDER];
 
@@ -187,9 +231,36 @@ export const BOARDS: Record<BoardType, BoardSpec> = {
     bg_price: 25.00,
     knauf_price: 22.00,
   },
+  glasroc_s: {
+    bg_name: "Glasroc S Ultra 12.5 mm",
+    knauf_name: "Knauf Soundshield Plus 12.5 mm",
+    thickness_mm: 12.5,
+    tagline: "High-performance acoustic + fire — tall partitions",
+    bg_price: 28.00,
+    knauf_price: 15.70,
+  },
+  glasroc_f: {
+    bg_name: "Glasroc F FireCase 12.5 mm",
+    knauf_name: "Knauf Fire Panel 12.5 mm",
+    thickness_mm: 12.5,
+    tagline: "Fire protection — steel column and beam encasement",
+    bg_price: 32.00,
+    knauf_price: 20.00,
+  },
+  glasroc_h: {
+    bg_name: "Glasroc H Ocean 12.5 mm",
+    knauf_name: "Knauf Aquapanel Interior 12.5 mm",
+    thickness_mm: 12.5,
+    tagline: "Wet-area / high-humidity — pools, wet rooms, basements",
+    bg_price: 28.00,
+    knauf_price: 26.00,
+  },
 };
 
-export const BOARD_ORDER: BoardType[] = ["standard", "mr", "fireline", "soundbloc", "duraline"];
+export const BOARD_ORDER: BoardType[] = [
+  "standard", "mr", "fireline", "soundbloc", "duraline",
+  "glasroc_s", "glasroc_f", "glasroc_h",
+];
 
 // ── Finishes ────────────────────────────────────────────────────────────────
 
@@ -337,10 +408,18 @@ export const JOINTING: Record<JointingProduct, JointingSpec> = {
   joint_filler: {
     name: "Gyproc Joint Filler",
     brand: "bg",
-    tagline: "Setting first coat + finish coat",
+    tagline: "Setting first coat — bedded into the tape",
     coverage_m2_per_unit: 35,
     unit_label: "12.5 kg bag",
     price_per_unit: 22.50,
+  },
+  joint_cement: {
+    name: "Gyproc Joint Cement",
+    brand: "bg",
+    tagline: "Ready-mixed finishing top coat — sands smooth",
+    coverage_m2_per_unit: 50,
+    unit_label: "25 kg tub",
+    price_per_unit: 28.00,
   },
   promix: {
     name: "Gyproc ProMix Lite",
@@ -369,8 +448,18 @@ export const JOINTING: Record<JointingProduct, JointingSpec> = {
 };
 
 export const JOINTING_ORDER: JointingProduct[] = [
-  "easifill", "joint_filler", "promix", "uniflott", "fillfinish",
+  "joint_filler", "joint_cement", "easifill", "promix", "uniflott", "fillfinish",
 ];
+
+// A painted plasterboard joint needs a setting filler (first coat, bedded
+// into the tape) AND a finishing compound (smooth top coat). The takeoff
+// auto-includes both when a wall's finish is paint, matching the traditional
+// UK workflow: Gyproc = Joint Filler + Joint Cement, Knauf = Uniflott +
+// Fill & Finish Light.
+export const PAINT_JOINTING_PACK: Record<Brand, { first: JointingProduct; top: JointingProduct }> = {
+  bg:    { first: "joint_filler", top: "joint_cement" },
+  knauf: { first: "uniflott",     top: "fillfinish" },
+};
 
 // ── Insulation ─────────────────────────────────────────────────────────────
 
@@ -404,6 +493,13 @@ export const CORNER_BEAD = {
   price_per_length: 2.50,
 };
 
+export const STOP_BEAD = {
+  name: "Stop bead / edge bead 2.4 m",
+  tagline: "Finishes the skim edge at architrave, ceiling line and abutments",
+  length_m: 2.4,
+  price_per_length: 2.20,
+};
+
 export const ACOUSTIC_SEALANT = {
   name: "Gyproc / Knauf Acoustic Sealant C3",
   tagline: "Run along head, sole and abutments per BG spec",
@@ -415,6 +511,35 @@ export const PERIMETER_FIXINGS = {
   name: "Hammer-in nail anchors",
   tagline: "Fix floor / ceiling track to concrete substrate",
   price_per_100: 7.50,
+};
+
+export const RESILIENT_BAR = {
+  name: "Gypframe Resilient Bar RB1 3 m",
+  tagline: "Isolates the board from the stud — required for SoundBloc acoustic specs",
+  length_m: 3.0,
+  spacing_mm: 600,     // installed horizontally at 600 mm centres up the stud
+  price_per_length: 5.20,
+};
+
+export const PATTRESS = {
+  name: "18 mm FSC Plywood Pattress 2400 × 1200",
+  tagline: "Sheet inside the wall cavity for heavy fixings (TV, radiator, rail)",
+  sheet_area_m2: 2.88,
+  price_per_sheet: 45.00,
+};
+
+// GFS1 Fixing Strap — fitted horizontally at the DEFLECTION HEAD (top of the
+// wall, where it meets the soffit) to receive the uppermost board fixings,
+// per BG Standard Detail ST-121-Z1L2-08. Straps are individual pieces fixed
+// at 1200 mm centres along the wall length. Auto-added to any wall > 3 m
+// (commercial height — walls with a structural soffit above usually need
+// deflection-head treatment).
+export const FLAT_PLATE = {
+  name: "Gypframe GFS1 Fixing Strap",
+  tagline: "Deflection-head detail — receives uppermost board fixings, at 1200 mm centres",
+  centres_m: 1.2,
+  price_per_length: 3.20,  // per individual strap
+  trigger_height_m: 3.0,
 };
 
 export const VAT_RATE = 0.20;
