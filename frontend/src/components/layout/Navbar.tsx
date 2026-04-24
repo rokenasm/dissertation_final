@@ -11,9 +11,7 @@ export default function Navbar() {
         <nav className="navbar-links">
           <NavLink to="/" end>Home</NavLink>
           <NavLink to="/estimator">Estimator</NavLink>
-          <NavLink to="/stories">Stories</NavLink>
           <NavLink to="/about">About</NavLink>
-          <NavLink to="/changelog">Changelog</NavLink>
           <NavLink to="/contact">Contact</NavLink>
         </nav>
         <Link to="/estimator" className="navbar-cta">
