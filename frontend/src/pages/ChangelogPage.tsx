@@ -1,3 +1,5 @@
+import { usePageTitle } from "../hooks/usePageTitle";
+
 interface Entry {
   date: string;
   tag: "shipped" | "fixed" | "planned";
@@ -6,6 +8,34 @@ interface Entry {
 }
 
 const ENTRIES: Entry[] = [
+  {
+    date: "2026-04-24",
+    tag: "shipped",
+    title: "Mobile-first responsive pass",
+    body:
+      "Every page now behaves on a phone. Navigation wraps, the wall form stacks, the takeoff table scrolls horizontally inside its own block, and the total hero card stacks cleanly at phone sizes. Global horizontal overflow suppressed so nothing can push the viewport wider than the screen.",
+  },
+  {
+    date: "2026-04-24",
+    tag: "shipped",
+    title: "Finish-aware accessories — skim plaster, corner beads, sealant, VAT",
+    body:
+      "Corner beads only appear on walls with a paint or skim finish. Skim walls now also get Gyproc Drywall Sealer primer and Thistle Multi-Finish plaster on the bill — previously they only got tape. Every takeoff includes acoustic sealant, perimeter fixings, and a VAT-inclusive total in a hero card at the top so the full cost jumps out.",
+  },
+  {
+    date: "2026-04-24",
+    tag: "shipped",
+    title: "Product catalogue — Knauf alternatives, CLS timber, screw lengths",
+    body:
+      "Every product now has a Knauf alternative alongside British Gypsum — brand picked once at project level, whole takeoff swaps. Added CLS timber studwork (38 × 63 and 38 × 89) at 400 mm centres for domestic partitions, with plates and mid-height noggins. Screw length now auto-picks between 25 mm, 38 mm, 45 mm and 38 mm coarse based on board thickness, layers and frame. A reference catalogue panel at the bottom of the estimator lists every product side-by-side with prices researched from UK merchants.",
+  },
+  {
+    date: "2026-04-23",
+    tag: "shipped",
+    title: "Live auto-calculating takeoff",
+    body:
+      "The estimator restructured into three numbered sections — drop a drawing, measure walls, read the takeoff. No 'Calculate' button. The moment a wall's dimensions are valid the takeoff appears and keeps updating as you tweak. Multi-skin walls now flip screw length to 45 mm automatically.",
+  },
   {
     date: "2026-04-22",
     tag: "shipped",
@@ -42,18 +72,18 @@ const ENTRIES: Entry[] = [
       "Every material row has an editable unit price. The total cost updates live. Defaults are UK trade rates, but any price can be swapped in place.",
   },
   {
-    date: "2026-04-27",
+    date: "2026-05-10",
     tag: "planned",
-    title: "Supplier dropdown and wall-finish toggle",
+    title: "Merchant preset — single-click prices from Jewson, Travis Perkins, Selco",
     body:
-      "Pre-load prices from Jewson, Travis Perkins, and Selco. One dropdown swaps every unit price at once. A finish toggle per wall (paint, tile, skim-only) conditionally adds jointing compound.",
+      "Replace the current indicative merchant-average prices with a dropdown that pulls a full catalogue of current prices from one merchant. Opens the door to a proper integration with a trade account.",
   },
   {
-    date: "2026-04-29",
+    date: "2026-05-20",
     tag: "planned",
-    title: "Live materials sidebar on the estimator",
+    title: "Labour-hour estimation on top of materials",
     body:
-      "A sticky panel that updates as you type. Every keystroke shows the current takeoff — no 'Calculate' button needed.",
+      "Currently out of scope — every company prices labour differently. Planned as an optional layer: typical hours per m² for boarding, taping, and skimming, fully editable.",
   },
 ];
 
@@ -64,6 +94,7 @@ function tagLabel(t: Entry["tag"]) {
 }
 
 export default function ChangelogPage() {
+  usePageTitle("Changelog");
   return (
     <section className="section section-narrow changelog">
       <div className="section-head">
