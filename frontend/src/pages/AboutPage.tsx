@@ -4,13 +4,22 @@ export default function AboutPage() {
   usePageTitle("About");
   return (
     <section className="section section-narrow essay">
-      <div className="essay-head">
-        <span className="eyebrow">About — Why RMBuild exists</span>
-        <h2 className="essay-title">
-          I was a labourer before <br />
-          I was a computing student.
-        </h2>
-        <p className="essay-dateline">Rokas · Written in the final year of the dissertation, April 2026</p>
+      <div className="essay-head essay-head--with-photo">
+        <div className="essay-head-text">
+          <span className="eyebrow">About — Why RMBuild exists</span>
+          <h2 className="essay-title">
+            I was a labourer before <br />
+            I was a computing student.
+          </h2>
+          <p className="essay-dateline">Rokas · Written in the final year of the dissertation, April 2026</p>
+        </div>
+        <figure className="essay-photo">
+          <img
+            src="/rokas-hs-award.jpg"
+            alt="Rokas receiving a health and safety award on site"
+          />
+          <figcaption>Health &amp; safety award — hospital fit-out, received on site.</figcaption>
+        </figure>
       </div>
 
       <div className="essay-body">
