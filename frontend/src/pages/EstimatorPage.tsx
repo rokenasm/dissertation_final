@@ -1,33 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   Persona, WallFormData, EstimateResponse, MaterialPrices, DetectedWall,
-  DetectedWallType, AgentAnalysisResult, ProjectSpec,
+  DetectedWallType, AgentAnalysisResult,
 } from "../types";
 import type {
   BoardType, MetalStudSize, TimberStudSize, ScrewLength, StudSize,
-  Brand, TapeType, JointingProduct, FrameMaterial, Finish,
+  FrameMaterial,
 } from "../catalogue";
-import {
-  BOARDS, TAPES, JOINTING, TAPE_ORDER, JOINTING_ORDER,
-  STUDS, BOARD_ORDER,
-} from "../catalogue";
+import { STUDS, BOARD_ORDER } from "../catalogue";
 import { PERSONA_DEFAULTS } from "../personas";
 import { DEFAULT_PRICES } from "../prices";
 import { fetchEstimate, analyseFloorPlan } from "../api";
 import { usePageTitle } from "../hooks/usePageTitle";
-import PersonaToggle from "../components/PersonaToggle";
+import PersonaToggle, { type TwoPersona } from "../components/PersonaToggle";
 import WallCard from "../components/WallCard";
 import ResultsTable from "../components/ResultsTable";
 import AgentUpload from "../components/AgentUpload";
 import MaterialsCatalogue from "../components/MaterialsCatalogue";
 
-const DEFAULT_SPEC: ProjectSpec = {
-  brand: "bg",
-  tape_type: "paper",
-  jointing_product: "easifill",
-};
-
-function newWall(persona: Persona): WallFormData {
+function newWall(persona: TwoPersona): WallFormData {
   return { ...PERSONA_DEFAULTS[persona], length: "", height: "" };
 }
 
@@ -61,7 +52,7 @@ function coerceOneOrTwo(raw: number | undefined): 1 | 2 | null {
 
 function detectedToWallForm(
   detected: DetectedWall,
-  persona: Persona,
+  persona: TwoPersona,
   typesById: Map<string, DetectedWallType>,
 ): WallFormData {
   const base = { ...PERSONA_DEFAULTS[persona] };
@@ -122,10 +113,11 @@ function checkReadiness(walls: WallFormData[]): Readiness {
 
 export default function EstimatorPage() {
   usePageTitle("Estimator");
-  const [persona, setPersona] = useState<Persona>("trade");
-  const [walls, setWalls] = useState<WallFormData[]>([newWall("trade")]);
+  // DIY is the default — this is the audience the tool is written for.
+  // Trade users get the same tool, just pre-populated differently.
+  const [persona, setPersona] = useState<TwoPersona>("diy");
+  const [walls, setWalls] = useState<WallFormData[]>([newWall("diy")]);
   const [prices, setPrices] = useState<MaterialPrices>(DEFAULT_PRICES);
-  const [spec, setSpec] = useState<ProjectSpec>(DEFAULT_SPEC);
   const [result, setResult] = useState<EstimateResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [calcLoading, setCalcLoading] = useState(false);
@@ -136,7 +128,26 @@ export default function EstimatorPage() {
   const [agentResult, setAgentResult] = useState<AgentAnalysisResult | null>(null);
   const [agentError, setAgentError] = useState<string | null>(null);
   const [savedMsg, setSavedMsg] = useState(false);
-  const hasSaved = !!localStorage.getItem("drylining_estimate");
+  const [projectName, setProjectName] = useState<string>("");
+  const [savedProjects, setSavedProjects] = useState<Record<string, { walls: WallFormData[]; prices: MaterialPrices; updated_at: string }>>(() => {
+    try {
+      const raw = localStorage.getItem("rmbuild_projects");
+      if (raw) return JSON.parse(raw);
+      // One-time migration from the old single-slot save.
+      const legacy = localStorage.getItem("drylining_estimate");
+      if (legacy) {
+        const parsed = JSON.parse(legacy);
+        return {
+          "Untitled project": {
+            walls: parsed.walls ?? [],
+            prices: parsed.prices ?? DEFAULT_PRICES,
+            updated_at: new Date().toISOString(),
+          },
+        };
+      }
+    } catch { /* ignore */ }
+    return {};
+  });
 
   const readiness = checkReadiness(walls);
 
@@ -178,10 +189,17 @@ export default function EstimatorPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [walls]);
 
-  function handlePersonaChange(p: Persona) {
+  function handlePersonaChange(p: TwoPersona) {
     setPersona(p);
+    // Restamp each wall's defaults but keep dimensions the user already typed.
     setWalls((prev) =>
-      prev.map((w) => ({ ...PERSONA_DEFAULTS[p], length: w.length, height: w.height }))
+      prev.map((w) => ({
+        ...PERSONA_DEFAULTS[p],
+        length: w.length,
+        height: w.height,
+        label: w.label,
+        openings: w.openings,
+      })),
     );
   }
 
@@ -215,7 +233,7 @@ export default function EstimatorPage() {
     }));
   }
 
-  function handleBoardPriceChange(type: BoardType, brand: Brand, value: number) {
+  function handleBoardPriceChange(type: BoardType, brand: "bg" | "knauf", value: number) {
     setPrices((prev) => ({
       ...prev,
       boards: { ...prev.boards, [type]: { ...prev.boards[type], [brand]: value } },
@@ -230,16 +248,17 @@ export default function EstimatorPage() {
   }
 
   function handleTapePriceChange(value: number) {
+    // Tape is always paper now; single price point.
     setPrices((prev) => ({
       ...prev,
-      tape: { ...prev.tape, [spec.tape_type]: value },
+      tape: { ...prev.tape, paper: value },
     }));
   }
 
-  function handleJointingPriceChange(value: number) {
+  function handleJointingPriceChange(product: keyof MaterialPrices["jointing"], value: number) {
     setPrices((prev) => ({
       ...prev,
-      jointing: { ...prev.jointing, [spec.jointing_product]: value },
+      jointing: { ...prev.jointing, [product]: value },
     }));
   }
 
@@ -253,6 +272,10 @@ export default function EstimatorPage() {
 
   function handleCornerBeadPriceChange(value: number) {
     setPrices((prev) => ({ ...prev, corner_bead_per_length: value }));
+  }
+
+  function handleStopBeadPriceChange(value: number) {
+    setPrices((prev) => ({ ...prev, stop_bead_per_length: value }));
   }
 
   function handleAcousticSealantPriceChange(value: number) {
@@ -271,6 +294,18 @@ export default function EstimatorPage() {
     setPrices((prev) => ({ ...prev, drywall_sealer_per_can: value }));
   }
 
+  function handleResilientBarPriceChange(value: number) {
+    setPrices((prev) => ({ ...prev, resilient_bar_per_length: value }));
+  }
+
+  function handlePattressPriceChange(value: number) {
+    setPrices((prev) => ({ ...prev, pattress_per_sheet: value }));
+  }
+
+  function handleFlatPlatePriceChange(value: number) {
+    setPrices((prev) => ({ ...prev, flat_plate_per_length: value }));
+  }
+
   function handleResetPrices() {
     if (!confirm("Reset every unit price back to its catalogue default?")) return;
     setPrices(DEFAULT_PRICES);
@@ -283,39 +318,52 @@ export default function EstimatorPage() {
     setError(null);
   }
 
+  function persistProjects(projects: typeof savedProjects) {
+    setSavedProjects(projects);
+    localStorage.setItem("rmbuild_projects", JSON.stringify(projects));
+  }
+
   function saveEstimate() {
-    localStorage.setItem("drylining_estimate", JSON.stringify({ walls, prices, spec }));
+    const name = projectName.trim() || "Untitled project";
+    persistProjects({
+      ...savedProjects,
+      [name]: { walls, prices, updated_at: new Date().toISOString() },
+    });
+    setProjectName(name);
     setSavedMsg(true);
     setTimeout(() => setSavedMsg(false), 2000);
   }
 
-  function loadEstimate() {
-    const raw = localStorage.getItem("drylining_estimate");
-    if (!raw) return;
-    try {
-      const parsed = JSON.parse(raw);
-      const defaults = PERSONA_DEFAULTS[persona];
-      const savedWalls: WallFormData[] = (parsed.walls ?? []).map((w: Partial<WallFormData>) => ({
-        ...defaults,
-        ...w,
-      }));
-      // Deep-merge saved prices onto current defaults so old schemas still load.
-      const savedPrices: MaterialPrices = {
-        ...DEFAULT_PRICES,
-        ...(parsed.prices ?? {}),
-        metal_studs: { ...DEFAULT_PRICES.metal_studs, ...((parsed.prices ?? {}).metal_studs ?? {}) },
-        timber_studs: { ...DEFAULT_PRICES.timber_studs, ...((parsed.prices ?? {}).timber_studs ?? {}) },
-        boards: { ...DEFAULT_PRICES.boards, ...((parsed.prices ?? {}).boards ?? {}) },
-        screws: { ...DEFAULT_PRICES.screws, ...((parsed.prices ?? {}).screws ?? {}) },
-        tape: { ...DEFAULT_PRICES.tape, ...((parsed.prices ?? {}).tape ?? {}) },
-        jointing: { ...DEFAULT_PRICES.jointing, ...((parsed.prices ?? {}).jointing ?? {}) },
-      };
-      const savedSpec: ProjectSpec = { ...DEFAULT_SPEC, ...(parsed.spec ?? {}) };
-      setWalls(savedWalls.length ? savedWalls : [newWall(persona)]);
-      setPrices(savedPrices);
-      setSpec(savedSpec);
-      setError(null);
-    } catch { /* ignore corrupt data */ }
+  function loadProject(name: string) {
+    const project = savedProjects[name];
+    if (!project) return;
+    const defaults = PERSONA_DEFAULTS[persona];
+    const savedWalls: WallFormData[] = (project.walls ?? []).map((w: Partial<WallFormData>) => ({
+      ...defaults,
+      ...w,
+    }));
+    const savedPrices: MaterialPrices = {
+      ...DEFAULT_PRICES,
+      ...(project.prices ?? {}),
+      metal_studs: { ...DEFAULT_PRICES.metal_studs, ...((project.prices ?? {}).metal_studs ?? {}) },
+      timber_studs: { ...DEFAULT_PRICES.timber_studs, ...((project.prices ?? {}).timber_studs ?? {}) },
+      boards: { ...DEFAULT_PRICES.boards, ...((project.prices ?? {}).boards ?? {}) },
+      screws: { ...DEFAULT_PRICES.screws, ...((project.prices ?? {}).screws ?? {}) },
+      tape: { ...DEFAULT_PRICES.tape, ...((project.prices ?? {}).tape ?? {}) },
+      jointing: { ...DEFAULT_PRICES.jointing, ...((project.prices ?? {}).jointing ?? {}) },
+    };
+    setWalls(savedWalls.length ? savedWalls : [newWall(persona)]);
+    setPrices(savedPrices);
+    setProjectName(name);
+    setError(null);
+  }
+
+  function deleteProject(name: string) {
+    if (!confirm(`Delete project "${name}"?`)) return;
+    const next = { ...savedProjects };
+    delete next[name];
+    persistProjects(next);
+    if (projectName === name) setProjectName("");
   }
 
   function handleAgentFileChange(file: File, preview: string) {
@@ -355,16 +403,12 @@ export default function EstimatorPage() {
       <div className="estimator-header">
         <div className="estimator-header-left">
           <span className="sheet-label">Estimator</span>
-          <h2 className="estimator-title">Partition wall takeoff</h2>
+          <h2 className="estimator-title">Price your partition wall</h2>
           <p className="estimator-sub">
-            Measure walls, or drop in a drawing and let the assistant read it.
-            Covers metal studwork (Gypframe / Knauf) and timber (CLS) partitions.
-            Live updates — no button press.
+            Built for DIY first — timber studs, 4×2 CLS, insulation.
+            Commercial trade mode is one click away. Drop in a drawing if you
+            have one, or measure the wall yourself below.
           </p>
-        </div>
-        <div className="estimator-header-right">
-          <span className="sheet-label">Spec</span>
-          <span className="sheet-meta">Metal A206001 · Timber NHBC 6.4 · UK merchant rates</span>
         </div>
       </div>
 
@@ -381,58 +425,7 @@ export default function EstimatorPage() {
           </div>
         </div>
 
-        <details className="spec-bar">
-          <summary className="spec-bar-summary">
-            <span className="sheet-label">Project spec</span>
-            <span className="spec-bar-summary-value">
-              {spec.brand === "bg" ? "Gyproc" : "Knauf"} · {TAPES[spec.tape_type].bg_name.split(" ")[0]} tape · {JOINTING[spec.jointing_product].name.split(" ").slice(-1)[0]}
-            </span>
-            <span className="spec-bar-hint">Click to change — applies to all walls</span>
-            <span className="assist-chevron" aria-hidden>▾</span>
-          </summary>
-          <div className="spec-bar-grid">
-            <label className="spec-bar-field">
-              <span>Brand</span>
-              <select
-                value={spec.brand}
-                onChange={(e) => setSpec({ ...spec, brand: e.target.value as Brand })}
-              >
-                <option value="bg">Gyproc / Gypframe (British Gypsum)</option>
-                <option value="knauf">Knauf</option>
-              </select>
-            </label>
-            <label className="spec-bar-field">
-              <span>Tape</span>
-              <select
-                value={spec.tape_type}
-                onChange={(e) => setSpec({ ...spec, tape_type: e.target.value as TapeType })}
-              >
-                {TAPE_ORDER.map((t) => (
-                  <option key={t} value={t}>
-                    {TAPES[t].bg_name.split(" —")[0]} — {TAPES[t].tagline}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="spec-bar-field">
-              <span>Jointing</span>
-              <select
-                value={spec.jointing_product}
-                onChange={(e) => setSpec({ ...spec, jointing_product: e.target.value as JointingProduct })}
-              >
-                {JOINTING_ORDER.map((j) => (
-                  <option key={j} value={j}>
-                    {JOINTING[j].name} — {JOINTING[j].tagline}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-        </details>
-
-        <div className="manual-controls">
-          <PersonaToggle value={persona} onChange={handlePersonaChange} />
-        </div>
+        <PersonaToggle value={persona} onChange={handlePersonaChange} />
 
         <div className="walls-list">
           {walls.map((wall, i) => (
@@ -451,17 +444,59 @@ export default function EstimatorPage() {
           <button type="button" className="add-wall-btn" onClick={addWall}>
             + Add wall
           </button>
-          <button type="button" className="save-btn" onClick={saveEstimate}>
-            {savedMsg ? "Saved" : "Save"}
-          </button>
-          {hasSaved && (
-            <button type="button" className="load-btn" onClick={loadEstimate}>
-              Restore saved
-            </button>
-          )}
           <button type="button" className="clear-btn" onClick={clearAll}>
             Clear all
           </button>
+        </div>
+
+        <div className="project-panel">
+          <div className="project-save-row">
+            <label className="project-name-field">
+              <span>Project name</span>
+              <input
+                type="text"
+                maxLength={60}
+                placeholder="e.g. Bedroom partition"
+                value={projectName}
+                onChange={(e) => setProjectName(e.target.value)}
+              />
+            </label>
+            <button type="button" className="save-btn" onClick={saveEstimate}>
+              {savedMsg ? "Saved" : "Save project"}
+            </button>
+          </div>
+
+          {Object.keys(savedProjects).length > 0 && (
+            <div className="project-list">
+              <span className="project-list-label">Saved projects</span>
+              <ul>
+                {Object.entries(savedProjects)
+                  .sort((a, b) => b[1].updated_at.localeCompare(a[1].updated_at))
+                  .map(([name, meta]) => (
+                    <li key={name}>
+                      <button
+                        type="button"
+                        className="project-load-btn"
+                        onClick={() => loadProject(name)}
+                      >
+                        {name}
+                        <span className="project-meta">
+                          {meta.walls.length} wall{meta.walls.length === 1 ? "" : "s"} · {new Date(meta.updated_at).toLocaleDateString("en-GB")}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        className="project-delete-btn"
+                        onClick={() => deleteProject(name)}
+                        aria-label={`Delete ${name}`}
+                      >
+                        ×
+                      </button>
+                    </li>
+                  ))}
+              </ul>
+            </div>
+          )}
         </div>
 
         {!readiness.ready && walls.length > 0 && (
@@ -495,7 +530,6 @@ export default function EstimatorPage() {
             walls={result.walls}
             formWalls={walls}
             prices={prices}
-            spec={spec}
             onMetalStudPriceChange={handleMetalStudPriceChange}
             onTimberStudPriceChange={handleTimberStudPriceChange}
             onBoardPriceChange={handleBoardPriceChange}
@@ -505,10 +539,14 @@ export default function EstimatorPage() {
             onInsulationPriceChange={handleInsulationPriceChange}
             onFramingScrewPriceChange={handleFramingScrewPriceChange}
             onCornerBeadPriceChange={handleCornerBeadPriceChange}
+            onStopBeadPriceChange={handleStopBeadPriceChange}
             onAcousticSealantPriceChange={handleAcousticSealantPriceChange}
             onPerimeterFixingsPriceChange={handlePerimeterFixingsPriceChange}
             onSkimPlasterPriceChange={handleSkimPlasterPriceChange}
             onDrywallSealerPriceChange={handleDrywallSealerPriceChange}
+            onResilientBarPriceChange={handleResilientBarPriceChange}
+            onPattressPriceChange={handlePattressPriceChange}
+            onFlatPlatePriceChange={handleFlatPlatePriceChange}
             onResetPrices={handleResetPrices}
           />
         ) : (
