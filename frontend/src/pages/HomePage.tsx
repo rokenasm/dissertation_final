@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
+import { usePageTitle } from "../hooks/usePageTitle";
 
 export default function HomePage() {
+  usePageTitle("From drawing to quote in minutes");
   return (
     <>
       {/* Hero — takeoff sheet, not a landing page */}
@@ -8,7 +10,7 @@ export default function HomePage() {
         <div className="sheet-header">
           <div className="sheet-header-left">
             <span className="sheet-label">Takeoff sheet</span>
-            <span className="sheet-meta">GypWall Single Frame · A206001 · Worked example</span>
+            <span className="sheet-meta">Metal &amp; timber partitions · Gyproc / Knauf / CLS · Worked example</span>
           </div>
           <div className="sheet-header-right">
             <span className="sheet-label">RMBuild</span>
@@ -24,9 +26,9 @@ export default function HomePage() {
               <em>written by a labourer.</em>
             </h1>
             <p className="sheet-lead">
-              Upload a drawing. Read the walls. Price the job. Every number
-              tied to the British Gypsum spec, every price editable, nothing
-              invented.
+              Upload a drawing. Read the walls. Price the job. Covers metal
+              studwork (Gyproc / Knauf) and timber partitions (CLS), with
+              every number tied to a published spec and every price editable.
             </p>
             <div className="sheet-ctas">
               <Link to="/estimator" className="btn btn-primary">Open the estimator →</Link>
@@ -131,7 +133,7 @@ export default function HomePage() {
             <div className="process-marker">03</div>
             <div className="process-body">
               <h3>Price the takeoff.</h3>
-              <p>Boards, studs, track, insulation, fixings, and tape — all calculated to spec. Jointing compound added when the wall's painted. Prices are editable so it matches your merchant.</p>
+              <p>Boards, studs or timber, tape, jointing, fixings and accessories — all calculated to spec and priced against UK merchants. Skim plaster and primer get added when a wall's skimmed; corner beads appear only where they're actually needed.</p>
             </div>
           </li>
         </ol>
@@ -147,9 +149,10 @@ export default function HomePage() {
         <div className="spec-head">
           <h2 className="big-h2 no-em">What the tool actually does.</h2>
           <p className="spec-lead">
-            Everything below is tied to the published British Gypsum GypWall
-            Single Frame spec (A206001). Click any row on the estimator to
-            see how the number was worked out.
+            Metal-frame calculations follow British Gypsum GypWall Single
+            Frame (A206001); timber-frame follows UK domestic convention
+            (38 × 89 mm CLS at 400 mm centres). Every price is editable and
+            tied to a UK merchant source.
           </p>
         </div>
 
@@ -165,51 +168,63 @@ export default function HomePage() {
           <tbody>
             <tr>
               <td>Plasterboard</td>
-              <td>Boarded area ÷ board coverage × sides × layers</td>
+              <td>Boarded area ÷ 2.88 m² × sides × layers</td>
               <td>10%</td>
-              <td>Openings deducted first</td>
+              <td>5 board types, Gyproc or Knauf</td>
             </tr>
             <tr>
-              <td>C-studs</td>
-              <td>Wall length ÷ spacing (600 or 300 mm) + end studs</td>
+              <td>Metal C-studs</td>
+              <td>Wall length ÷ spacing (300 or 600 mm) + end studs</td>
               <td>5%</td>
-              <td>300 mm centres for heavy fixing walls</td>
+              <td>48 S to 146 S, with matched FEC channel</td>
             </tr>
             <tr>
-              <td>U-track</td>
-              <td>2 × wall length ÷ 3 m track length</td>
+              <td>Timber studs</td>
+              <td>Wall length ÷ 400 mm + end studs + mid-height noggins</td>
+              <td>10%</td>
+              <td>38 × 63 or 38 × 89 CLS C16, 3 m lengths</td>
+            </tr>
+            <tr>
+              <td>Track / plates</td>
+              <td>2 × wall length ÷ stock length (3.6 m metal / 3.0 m timber)</td>
               <td>5%</td>
-              <td>Top and bottom track</td>
+              <td>Head + sole run</td>
             </tr>
             <tr>
               <td>Acoustic insulation</td>
-              <td>Wall area × number of layers</td>
-              <td>10%</td>
-              <td>Only if wall is flagged insulated</td>
+              <td>Boarded area ÷ 15.6 m² per pack</td>
+              <td>5%</td>
+              <td>Only when the wall is flagged insulated</td>
             </tr>
             <tr>
               <td>Drywall screws</td>
-              <td>Boarded area × screws per m²</td>
-              <td>15%</td>
-              <td>Board-to-stud fixings</td>
-            </tr>
-            <tr>
-              <td>Framing screws</td>
-              <td>Stud count × fixings per stud</td>
-              <td>15%</td>
-              <td>Stud-to-track fixings</td>
+              <td>Studs × vertical fixings × sides × layers</td>
+              <td>10%</td>
+              <td>Length auto-picked: 25 / 38 / 45 mm or 38 mm coarse for timber</td>
             </tr>
             <tr>
               <td>Joint tape</td>
-              <td>Linear metres of joints</td>
+              <td>Linear metres of joints ÷ roll length</td>
               <td>10%</td>
-              <td>90 m rolls</td>
+              <td>Paper (150 m) or self-adhesive scrim (90 m)</td>
             </tr>
             <tr>
               <td>Jointing compound</td>
-              <td>Area × coverage rate</td>
+              <td>Boarding area ÷ product coverage</td>
               <td>10%</td>
-              <td>Only if wall is painted, not tiled</td>
+              <td>EasiFill, Joint Filler, ProMix, Uniflott or Fill &amp; Finish</td>
+            </tr>
+            <tr>
+              <td>Skim plaster + primer</td>
+              <td>Boarding area ÷ 10 m² &middot; primer ÷ 40 m²</td>
+              <td>—</td>
+              <td>Only when the finish is skim, not paint</td>
+            </tr>
+            <tr>
+              <td>Accessories</td>
+              <td>Corner beads around openings, sealant around perimeter, anchors to substrate</td>
+              <td>—</td>
+              <td>Often forgotten on manual takeoffs</td>
             </tr>
           </tbody>
         </table>
