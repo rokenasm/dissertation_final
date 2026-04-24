@@ -1,25 +1,58 @@
 import type { MaterialPrices } from "./types";
-import type { StudSize, BoardType } from "./catalogue";
-import { STUDS, BOARDS, STUD_ORDER, BOARD_ORDER } from "./catalogue";
+import type {
+  MetalStudSize, TimberStudSize, BoardType, ScrewLength, TapeType, JointingProduct,
+} from "./catalogue";
+import {
+  STUDS, BOARDS, SCREWS, TAPES, JOINTING, FRAMING_SCREWS, INSULATION,
+  CORNER_BEAD, ACOUSTIC_SEALANT, PERIMETER_FIXINGS,
+  SKIM_PLASTER, DRYWALL_SEALER,
+  METAL_STUD_ORDER, TIMBER_STUD_ORDER, BOARD_ORDER, TAPE_ORDER, JOINTING_ORDER,
+} from "./catalogue";
 
-// Default UK trade prices — synthesized from catalogue.ts.
-// Everything is editable inline in the takeoff table.
-const studDefaults = STUD_ORDER.reduce((acc, size) => {
+// Build default editable prices from the catalogue. All numbers are overridable
+// inline in the takeoff; users should confirm with their own merchant.
+const metalStuds = METAL_STUD_ORDER.reduce((acc, size) => {
   acc[size] = { piece: STUDS[size].stud_price, track: STUDS[size].track_price };
   return acc;
-}, {} as Record<StudSize, { piece: number; track: number }>);
+}, {} as Record<MetalStudSize, { piece: number; track: number }>);
 
-const boardDefaults = BOARD_ORDER.reduce((acc, type) => {
-  acc[type] = BOARDS[type].price;
+const timberStuds = TIMBER_STUD_ORDER.reduce((acc, size) => {
+  acc[size] = STUDS[size].stud_price;
   return acc;
-}, {} as Record<BoardType, number>);
+}, {} as Record<TimberStudSize, number>);
+
+const boards = BOARD_ORDER.reduce((acc, type) => {
+  acc[type] = { bg: BOARDS[type].bg_price, knauf: BOARDS[type].knauf_price };
+  return acc;
+}, {} as Record<BoardType, { bg: number; knauf: number }>);
+
+const screws = (Object.keys(SCREWS) as ScrewLength[]).reduce((acc, len) => {
+  acc[len] = SCREWS[len].price_per_100;
+  return acc;
+}, {} as Record<ScrewLength, number>);
+
+const tape = TAPE_ORDER.reduce((acc, t) => {
+  acc[t] = TAPES[t].price_per_roll;
+  return acc;
+}, {} as Record<TapeType, number>);
+
+const jointing = JOINTING_ORDER.reduce((acc, j) => {
+  acc[j] = JOINTING[j].price_per_unit;
+  return acc;
+}, {} as Record<JointingProduct, number>);
 
 export const DEFAULT_PRICES: MaterialPrices = {
-  studs: studDefaults,
-  boards: boardDefaults,
-  insulation_per_pack: 38.00,   // Isover APR 1200 50mm
-  screws_per_100: 1.80,         // BG Drywall Screws 25mm — per 100
-  framing_screws_per_100: 1.50, // BG Wafer Head 13mm — per 100
-  joint_tape_per_roll: 11.50,   // Gyproc Joint Tape 150m
-  easifill_per_bag: 13.50,      // Gyproc EasiFill 60 10kg
+  metal_studs: metalStuds,
+  timber_studs: timberStuds,
+  boards,
+  screws,
+  framing_screws_per_100: FRAMING_SCREWS.price_per_100,
+  tape,
+  jointing,
+  insulation_per_pack: INSULATION.price_per_pack,
+  corner_bead_per_length: CORNER_BEAD.price_per_length,
+  acoustic_sealant_per_cartridge: ACOUSTIC_SEALANT.price_per_cartridge,
+  perimeter_fixings_per_100: PERIMETER_FIXINGS.price_per_100,
+  skim_plaster_per_bag: SKIM_PLASTER.price_per_bag,
+  drywall_sealer_per_can: DRYWALL_SEALER.price_per_can,
 };
