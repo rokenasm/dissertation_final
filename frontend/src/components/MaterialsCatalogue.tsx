@@ -1,6 +1,8 @@
 import type { MaterialPrices } from "../types";
 import {
   STUDS, BOARDS, SCREWS, TAPES, JOINTING, FRAMING_SCREWS, INSULATION,
+  SKIM_PLASTER, DRYWALL_SEALER, CORNER_BEAD, STOP_BEAD,
+  ACOUSTIC_SEALANT, PERIMETER_FIXINGS, FLAT_PLATE,
   METAL_STUD_ORDER, TIMBER_STUD_ORDER, BOARD_ORDER, TAPE_ORDER, JOINTING_ORDER,
 } from "../catalogue";
 
@@ -219,6 +221,65 @@ export default function MaterialsCatalogue({ prices }: Props) {
                 <td>{INSULATION.name}</td>
                 <td>{INSULATION.coverage_m2_per_pack} m² / pack</td>
                 <td className="cat-price">{fmt(prices.insulation_per_pack)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        {/* Finishing & accessories */}
+        <section className="catalogue-section">
+          <h4>Finishing &amp; accessories</h4>
+          <table className="catalogue-table">
+            <thead>
+              <tr>
+                <th>Material</th>
+                <th>Product</th>
+                <th>Use</th>
+                <th>Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td className="cat-size">Skim plaster</td>
+                <td><strong>{SKIM_PLASTER.name}</strong></td>
+                <td className="cat-label">{SKIM_PLASTER.tagline}</td>
+                <td className="cat-price">{fmt(prices.skim_plaster_per_bag)} / bag</td>
+              </tr>
+              <tr>
+                <td className="cat-size">Primer for skim</td>
+                <td><strong>{DRYWALL_SEALER.name}</strong></td>
+                <td className="cat-label">{DRYWALL_SEALER.tagline}</td>
+                <td className="cat-price">{fmt(prices.drywall_sealer_per_can)} / can</td>
+              </tr>
+              <tr>
+                <td className="cat-size">Corner beads</td>
+                <td><strong>{CORNER_BEAD.name}</strong></td>
+                <td className="cat-label">{CORNER_BEAD.tagline}</td>
+                <td className="cat-price">{fmt(prices.corner_bead_per_length)} / length</td>
+              </tr>
+              <tr>
+                <td className="cat-size">Stop beads</td>
+                <td><strong>{STOP_BEAD.name}</strong></td>
+                <td className="cat-label">{STOP_BEAD.tagline}</td>
+                <td className="cat-price">{fmt(prices.stop_bead_per_length)} / length</td>
+              </tr>
+              <tr>
+                <td className="cat-size">Acoustic sealant</td>
+                <td><strong>{ACOUSTIC_SEALANT.name}</strong></td>
+                <td className="cat-label">{ACOUSTIC_SEALANT.tagline}</td>
+                <td className="cat-price">{fmt(prices.acoustic_sealant_per_cartridge)} / cartridge</td>
+              </tr>
+              <tr>
+                <td className="cat-size">Perimeter fixings</td>
+                <td><strong>{PERIMETER_FIXINGS.name}</strong></td>
+                <td className="cat-label">{PERIMETER_FIXINGS.tagline}</td>
+                <td className="cat-price">{fmt(prices.perimeter_fixings_per_100)} / 100</td>
+              </tr>
+              <tr>
+                <td className="cat-size">Tall-wall strap</td>
+                <td><strong>{FLAT_PLATE.name}</strong></td>
+                <td className="cat-label">{FLAT_PLATE.tagline}</td>
+                <td className="cat-price">{fmt(prices.flat_plate_per_length)} / strap</td>
               </tr>
             </tbody>
           </table>
