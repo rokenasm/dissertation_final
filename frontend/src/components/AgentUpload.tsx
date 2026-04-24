@@ -1,5 +1,27 @@
 import { useRef, useState } from "react";
-import type { AgentAnalysisResult, DetectedWall } from "../types";
+import type { AgentAnalysisResult, DetectedWall, DetectedWallType } from "../types";
+
+function buildupSummary(type: DetectedWallType | undefined): string {
+  if (!type) return "—";
+  const bits: string[] = [];
+  if (type.frame_material) bits.push(type.frame_material === "timber" ? "Timber" : "Metal");
+  if (type.stud_size) {
+    bits.push(
+      type.stud_size +
+        (type.stud_spacing_mm ? ` @ ${type.stud_spacing_mm}` : "")
+    );
+  }
+  if (type.board_type) {
+    const skins =
+      type.sides && type.layers
+        ? ` ${type.sides}×${type.layers}`
+        : "";
+    bits.push(type.board_type + skins);
+  }
+  if (type.insulated) bits.push("insulated");
+  if (type.fire_rating_min) bits.push(`${type.fire_rating_min}-min fire`);
+  return bits.length ? bits.join(" · ") : "—";
+}
 
 interface Props {
   file: File | null;
@@ -9,7 +31,7 @@ interface Props {
   error: string | null;
   onFileChange: (file: File, preview: string) => void;
   onAnalyse: () => void;
-  onWallsDetected: (walls: DetectedWall[]) => void;
+  onWallsDetected: (walls: DetectedWall[], wallTypes?: DetectedWallType[]) => void;
 }
 
 export default function AgentUpload({
@@ -117,36 +139,51 @@ export default function AgentUpload({
 
           {result.walls.length > 0 ? (
             <>
-              <table className="detected-table">
-                <thead>
-                  <tr>
-                    <th>Wall</th>
-                    <th>Length</th>
-                    <th>Height</th>
-                    <th>Openings</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {result.walls.map((w, i) => (
-                    <tr key={i}>
-                      <td><strong>{w.label}</strong></td>
-                      <td>{w.length} m</td>
-                      <td>{w.height} m</td>
-                      <td>
-                        {w.openings.length > 0
-                          ? w.openings.map((o) => `${o.label} ${o.width}×${o.height}m`).join(", ")
-                          : "—"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              {(() => {
+                const typesById = new Map<string, DetectedWallType>();
+                (result.wall_types ?? []).forEach((t) => typesById.set(t.id, t));
+                return (
+                  <table className="detected-table">
+                    <thead>
+                      <tr>
+                        <th>Wall</th>
+                        <th>Size</th>
+                        <th>Build-up</th>
+                        <th>Openings</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {result.walls.map((w, i) => {
+                        const type = w.type_id ? typesById.get(w.type_id) : undefined;
+                        return (
+                          <tr key={i}>
+                            <td>
+                              <strong>{w.label}</strong>
+                              {type?.spec_code && (
+                                <span className="detected-spec"> · {type.spec_code}</span>
+                              )}
+                            </td>
+                            <td>{w.length} m × {w.height} m</td>
+                            <td className="detected-buildup">{buildupSummary(type)}</td>
+                            <td>
+                              {w.openings.length > 0
+                                ? w.openings.map((o) => `${o.label} ${o.width}×${o.height}m`).join(", ")
+                                : "—"}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                );
+              })()}
               <p className="detected-note">
-                Review the dimensions above. Height defaults to 2.4 m (standard
-                UK ceiling) — adjust if you know better from an elevation.
-                Loading them in lets you edit any number before the maths runs.
+                Walls with a build-up above came from the partition types key
+                and will pre-fill stud / board / skins / insulation when you load
+                them. Walls showing "—" didn't match any type — they fall back
+                to the current persona default and you can set them manually.
               </p>
-              <button type="button" className="btn btn-primary" onClick={() => onWallsDetected(result.walls)}>
+              <button type="button" className="btn btn-primary" onClick={() => onWallsDetected(result.walls, result.wall_types)}>
                 Load into walls below →
               </button>
             </>
