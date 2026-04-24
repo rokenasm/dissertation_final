@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { usePageTitle } from "../hooks/usePageTitle";
 
 const API = import.meta.env.VITE_API_BASE ?? "http://localhost:8001";
 const TOKEN_KEY = "rmbuild_admin_token";
@@ -29,6 +30,7 @@ function formatDate(iso: string): string {
 }
 
 export default function AdminPage() {
+  usePageTitle("Admin inbox");
   const [token, setToken] = useState<string | null>(
     () => localStorage.getItem(TOKEN_KEY)
   );
