@@ -22,14 +22,17 @@ export interface WallFormData {
   label: string;
   length: string;
   height: string;
+  brand: Brand;
   frame_material: FrameMaterial;
   stud_size: StudSize;
-  stud_spacing_mm: 300 | 400 | 600;
+  stud_spacing_mm: 300 | 600;
   sides: 1 | 2;
   layers: number;
   board_type: BoardType;
   finish: Finish;
   insulated: boolean;
+  resilient_bars: boolean;
+  pattress: boolean;
   openings: Opening[];
   board_waste_pct: number;
   stud_waste_pct: number;
@@ -39,12 +42,6 @@ export interface WallFormData {
   framing_screw_waste_pct: number;
   joint_tape_waste_pct: number;
   easifill_waste_pct: number;
-}
-
-export interface ProjectSpec {
-  brand: Brand;
-  tape_type: TapeType;
-  jointing_product: JointingProduct;
 }
 
 export interface WallEstimate {
@@ -129,8 +126,12 @@ export interface MaterialPrices {
   jointing: Record<JointingProduct, number>;
   insulation_per_pack: number;
   corner_bead_per_length: number;
+  stop_bead_per_length: number;
   acoustic_sealant_per_cartridge: number;
   perimeter_fixings_per_100: number;
   skim_plaster_per_bag: number;
   drywall_sealer_per_can: number;
+  resilient_bar_per_length: number;
+  pattress_per_sheet: number;
+  flat_plate_per_length: number;
 }
