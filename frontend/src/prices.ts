@@ -4,7 +4,8 @@ import type {
 } from "./catalogue";
 import {
   STUDS, BOARDS, SCREWS, TAPES, JOINTING, FRAMING_SCREWS, INSULATION,
-  CORNER_BEAD, ACOUSTIC_SEALANT, PERIMETER_FIXINGS,
+  CORNER_BEAD, STOP_BEAD, ACOUSTIC_SEALANT, PERIMETER_FIXINGS,
+  RESILIENT_BAR, PATTRESS, FLAT_PLATE,
   SKIM_PLASTER, DRYWALL_SEALER,
   METAL_STUD_ORDER, TIMBER_STUD_ORDER, BOARD_ORDER, TAPE_ORDER, JOINTING_ORDER,
 } from "./catalogue";
@@ -51,8 +52,12 @@ export const DEFAULT_PRICES: MaterialPrices = {
   jointing,
   insulation_per_pack: INSULATION.price_per_pack,
   corner_bead_per_length: CORNER_BEAD.price_per_length,
+  stop_bead_per_length: STOP_BEAD.price_per_length,
   acoustic_sealant_per_cartridge: ACOUSTIC_SEALANT.price_per_cartridge,
   perimeter_fixings_per_100: PERIMETER_FIXINGS.price_per_100,
   skim_plaster_per_bag: SKIM_PLASTER.price_per_bag,
   drywall_sealer_per_can: DRYWALL_SEALER.price_per_can,
+  resilient_bar_per_length: RESILIENT_BAR.price_per_length,
+  pattress_per_sheet: PATTRESS.price_per_sheet,
+  flat_plate_per_length: FLAT_PLATE.price_per_length,
 };
