@@ -1,4 +1,15 @@
-import type { StudSize, BoardType, Finish } from "./catalogue";
+import type {
+  StudSize,
+  MetalStudSize,
+  TimberStudSize,
+  BoardType,
+  Finish,
+  FrameMaterial,
+  Brand,
+  TapeType,
+  JointingProduct,
+  ScrewLength,
+} from "./catalogue";
 
 export type Persona = "diy" | "trade" | "estimator";
 
@@ -11,8 +22,9 @@ export interface WallFormData {
   label: string;
   length: string;
   height: string;
+  frame_material: FrameMaterial;
   stud_size: StudSize;
-  stud_spacing_mm: 300 | 600;
+  stud_spacing_mm: 300 | 400 | 600;
   sides: 1 | 2;
   layers: number;
   board_type: BoardType;
@@ -27,6 +39,12 @@ export interface WallFormData {
   framing_screw_waste_pct: number;
   joint_tape_waste_pct: number;
   easifill_waste_pct: number;
+}
+
+export interface ProjectSpec {
+  brand: Brand;
+  tape_type: TapeType;
+  jointing_product: JointingProduct;
 }
 
 export interface WallEstimate {
@@ -70,32 +88,49 @@ export interface DetectedOpening {
   label: string;
 }
 
+export interface DetectedWallType {
+  id: string;
+  spec_code?: string;
+  frame_material?: "metal" | "timber";
+  stud_size?: string;
+  stud_spacing_mm?: number;
+  board_type?: string;
+  layers?: number;
+  sides?: number;
+  insulated?: boolean;
+  fire_rating_min?: number;
+  acoustic_rw_db?: number;
+}
+
 export interface DetectedWall {
   label: string;
   length: number;
   height: number;
+  type_id?: string | null;
   openings: DetectedOpening[];
 }
 
 export interface AgentAnalysisResult {
+  wall_types?: DetectedWallType[];
   walls: DetectedWall[];
   scale_detected: string;
   notes: string;
 }
 
+// Editable price overrides. Defaults come from catalogue.ts (DEFAULT_PRICES).
+// User can override any cell inline in the takeoff.
 export interface MaterialPrices {
-  studs: Record<StudSize, { piece: number; track: number }>;
-  boards: Record<BoardType, number>;
-  insulation_per_pack: number;
-  screws_per_100: number;
+  metal_studs: Record<MetalStudSize, { piece: number; track: number }>;
+  timber_studs: Record<TimberStudSize, number>; // stud = plate, same timber
+  boards: Record<BoardType, { bg: number; knauf: number }>;
+  screws: Record<ScrewLength, number>;
   framing_screws_per_100: number;
-  joint_tape_per_roll: number;
-  easifill_per_bag: number;
+  tape: Record<TapeType, number>;
+  jointing: Record<JointingProduct, number>;
+  insulation_per_pack: number;
+  corner_bead_per_length: number;
+  acoustic_sealant_per_cartridge: number;
+  perimeter_fixings_per_100: number;
+  skim_plaster_per_bag: number;
+  drywall_sealer_per_can: number;
 }
-
-export type SharedPriceKey =
-  | "insulation_per_pack"
-  | "screws_per_100"
-  | "framing_screws_per_100"
-  | "joint_tape_per_roll"
-  | "easifill_per_bag";
