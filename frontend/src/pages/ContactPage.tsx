@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { usePageTitle } from "../hooks/usePageTitle";
 
 const API = import.meta.env.VITE_API_BASE ?? "http://localhost:8001";
 
 type Status = "idle" | "sending" | "sent" | "error";
 
 export default function ContactPage() {
+  usePageTitle("Contact");
   const [form, setForm] = useState({ name: "", email: "", message: "" });
   const [status, setStatus] = useState<Status>("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
