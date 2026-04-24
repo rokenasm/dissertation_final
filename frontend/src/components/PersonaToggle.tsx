@@ -1,37 +1,45 @@
 import type { Persona } from "../types";
-import { PERSONA_LABELS } from "../personas";
+
+// Two presets that matter — DIY (domestic timber) vs Trade (commercial metal).
+// The third "estimator" persona was removed because it wasn't meaningfully
+// different from Trade.
+type TwoPersona = "diy" | "trade";
 
 interface Props {
-  value: Persona;
-  onChange: (p: Persona) => void;
+  value: TwoPersona;
+  onChange: (p: TwoPersona) => void;
 }
 
-const PERSONA_HINTS: Record<Persona, string> = {
-  diy: "Timber partitions, 4×2 CLS at 400 mm, insulation on by default",
-  trade: "Metal GypWall 70 S 50 at 600 mm, standard board, paint finish",
-  estimator: "Heavier commercial — 92 S 50 metal + FireLine board",
+const LABELS: Record<TwoPersona, string> = {
+  diy: "DIY",
+  trade: "Trade",
+};
+
+const HINTS: Record<TwoPersona, string> = {
+  diy: "Domestic timber partitions — CLS 4×2, insulation on, paint finish",
+  trade: "Commercial metal — Gypframe 70 S 50, WallBoard, paint finish",
 };
 
 export default function PersonaToggle({ value, onChange }: Props) {
-  const personas: Persona[] = ["diy", "trade", "estimator"];
-
   return (
     <div className="persona-wrap">
       <div className="persona-toggle">
-        {personas.map((p) => (
+        {(["diy", "trade"] as const).map((p) => (
           <button
             key={p}
             type="button"
             className={`persona-btn${value === p ? " active" : ""}`}
             onClick={() => onChange(p)}
           >
-            {PERSONA_LABELS[p]}
+            {LABELS[p]}
           </button>
         ))}
       </div>
       <p className="persona-hint">
-        <span className="persona-hint-label">Applies defaults:</span> {PERSONA_HINTS[value]}
+        <span className="persona-hint-label">New walls start as:</span> {HINTS[value]}
       </p>
     </div>
   );
 }
+
+export type { TwoPersona };
