@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { WallFormData, Opening } from "../types";
 import type {
-  StudSize, BoardType, Finish, FrameMaterial,
+  StudSize, BoardType, Finish, FrameMaterial, Brand,
 } from "../catalogue";
 import {
   STUDS, BOARDS, FINISHES,
@@ -24,12 +24,11 @@ export default function WallForm({ data, onChange, wallIndex }: Props) {
   function handleFrameChange(frame: FrameMaterial) {
     // Keep the wall valid when switching frame: pick a sensible stud + spacing.
     const defaultSize: StudSize = frame === "metal" ? "70S" : "T38x89";
-    const defaultSpacing: 300 | 400 | 600 = frame === "metal" ? 600 : 400;
     onChange({
       ...data,
       frame_material: frame,
       stud_size: defaultSize,
-      stud_spacing_mm: defaultSpacing,
+      stud_spacing_mm: 600,
     });
   }
 
@@ -47,8 +46,7 @@ export default function WallForm({ data, onChange, wallIndex }: Props) {
   }
 
   const studOptions = data.frame_material === "metal" ? METAL_STUD_ORDER : TIMBER_STUD_ORDER;
-  const spacingOptions: (300 | 400 | 600)[] =
-    data.frame_material === "metal" ? [300, 600] : [400, 600];
+  const spacingOptions: (300 | 600)[] = [300, 600];
 
   return (
     <div className="wall-form">
@@ -88,6 +86,29 @@ export default function WallForm({ data, onChange, wallIndex }: Props) {
             required
           />
         </label>
+
+        {(() => {
+          const len = parseFloat(data.length);
+          const ht = parseFloat(data.height);
+          if (!len || !ht || len <= 0 || ht <= 0) return null;
+          const gross = len * ht;
+          const openingsArea = data.openings.reduce(
+            (s, o) => s + o.width * o.height,
+            0,
+          );
+          const net = gross - openingsArea;
+          return (
+            <div className="wall-area-hint">
+              <span className="wall-area-label">Wall area</span>
+              <span className="wall-area-value">{gross.toFixed(1)} m²</span>
+              {openingsArea > 0 && (
+                <span className="wall-area-net">
+                  — {net.toFixed(1)} m² after openings
+                </span>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       <div className="form-row">
@@ -117,6 +138,20 @@ export default function WallForm({ data, onChange, wallIndex }: Props) {
 
       <div className="form-row form-row-selects">
         <label className="select-label">
+          <span className="select-head">Brand</span>
+          <select
+            value={data.brand}
+            onChange={(e) => set("brand", e.target.value as Brand)}
+          >
+            <option value="bg">Gyproc / Gypframe (British Gypsum)</option>
+            <option value="knauf">Knauf</option>
+          </select>
+          <span className="select-foot">
+            {data.brand === "bg" ? "British Gypsum range" : "Knauf range"}
+          </span>
+        </label>
+
+        <label className="select-label">
           <span className="select-head">
             {data.frame_material === "metal" ? "Metal stud" : "Timber stud"}
           </span>
@@ -130,7 +165,11 @@ export default function WallForm({ data, onChange, wallIndex }: Props) {
               </option>
             ))}
           </select>
-          <span className="select-foot">{STUDS[data.stud_size].bg_name}</span>
+          <span className="select-foot">
+            {data.brand === "bg"
+              ? STUDS[data.stud_size].bg_name
+              : STUDS[data.stud_size].knauf_name ?? STUDS[data.stud_size].bg_name}
+          </span>
         </label>
 
         <label className="select-label">
@@ -145,7 +184,9 @@ export default function WallForm({ data, onChange, wallIndex }: Props) {
               </option>
             ))}
           </select>
-          <span className="select-foot">{BOARDS[data.board_type].bg_name}</span>
+          <span className="select-foot">
+            {data.brand === "bg" ? BOARDS[data.board_type].bg_name : BOARDS[data.board_type].knauf_name}
+          </span>
         </label>
       </div>
 
