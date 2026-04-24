@@ -2,6 +2,7 @@ import type { Persona, WallFormData } from "./types";
 
 const BASE: Omit<WallFormData, "length" | "height"> = {
   label: "",
+  brand: "bg",
   frame_material: "metal",
   stud_size: "70S",
   stud_spacing_mm: 600,
@@ -10,6 +11,8 @@ const BASE: Omit<WallFormData, "length" | "height"> = {
   board_type: "standard",
   finish: "paint",
   insulated: false,
+  resilient_bars: false,
+  pattress: false,
   openings: [],
   board_waste_pct: 10,
   stud_waste_pct: 5,
@@ -27,7 +30,7 @@ export const PERSONA_DEFAULTS: Record<Persona, Omit<WallFormData, "length" | "he
     ...BASE,
     frame_material: "timber",
     stud_size: "T38x89",
-    stud_spacing_mm: 400,
+    stud_spacing_mm: 600,
     insulated: true,
     board_waste_pct: 15,
     stud_waste_pct: 10,
