@@ -4,8 +4,6 @@ import Footer from "./components/layout/Footer";
 import HomePage from "./pages/HomePage";
 import EstimatorPage from "./pages/EstimatorPage";
 import AboutPage from "./pages/AboutPage";
-import StoriesPage from "./pages/StoriesPage";
-import ChangelogPage from "./pages/ChangelogPage";
 import ContactPage from "./pages/ContactPage";
 import AdminPage from "./pages/AdminPage";
 import NotFoundPage from "./pages/NotFoundPage";
@@ -20,8 +18,6 @@ export default function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/estimator" element={<EstimatorPage />} />
           <Route path="/about" element={<AboutPage />} />
-          <Route path="/stories" element={<StoriesPage />} />
-          <Route path="/changelog" element={<ChangelogPage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="*" element={<NotFoundPage />} />
