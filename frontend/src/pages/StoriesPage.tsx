@@ -1,3 +1,5 @@
+import { usePageTitle } from "../hooks/usePageTitle";
+
 interface Story {
   id: string;
   year: string;
@@ -61,6 +63,7 @@ const STORIES: Story[] = [
 ];
 
 export default function StoriesPage() {
+  usePageTitle("Stories from site");
   return (
     <section className="section section-narrow stories">
       <div className="section-head">
