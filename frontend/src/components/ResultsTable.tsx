@@ -1,14 +1,17 @@
 import type {
-  WallEstimate, MaterialPrices, WallFormData, ProjectSpec,
+  WallEstimate, MaterialPrices, WallFormData,
 } from "../types";
 import type {
   StudSize, BoardType, ScrewLength, MetalStudSize, TimberStudSize,
+  Brand, JointingProduct,
 } from "../catalogue";
 import {
   STUDS, BOARDS, FINISHES, SCREWS, TAPES, JOINTING, FRAMING_SCREWS,
-  CORNER_BEAD, ACOUSTIC_SEALANT, PERIMETER_FIXINGS,
+  CORNER_BEAD, STOP_BEAD, ACOUSTIC_SEALANT, PERIMETER_FIXINGS,
+  RESILIENT_BAR, PATTRESS, FLAT_PLATE,
   SKIM_PLASTER, DRYWALL_SEALER, VAT_RATE,
   METAL_STUD_ORDER, TIMBER_STUD_ORDER, BOARD_ORDER,
+  PAINT_JOINTING_PACK,
   pickBoardScrewLength, isTimber,
 } from "../catalogue";
 
@@ -16,25 +19,31 @@ interface Props {
   walls: WallEstimate[];
   formWalls: WallFormData[];
   prices: MaterialPrices;
-  spec: ProjectSpec;
   onMetalStudPriceChange: (size: MetalStudSize, kind: "piece" | "track", value: number) => void;
   onTimberStudPriceChange: (size: TimberStudSize, value: number) => void;
   onBoardPriceChange: (type: BoardType, brand: "bg" | "knauf", value: number) => void;
   onScrewPriceChange: (len: ScrewLength, value: number) => void;
   onTapePriceChange: (value: number) => void;
-  onJointingPriceChange: (value: number) => void;
+  onJointingPriceChange: (product: JointingProduct, value: number) => void;
   onInsulationPriceChange: (value: number) => void;
   onFramingScrewPriceChange: (value: number) => void;
   onCornerBeadPriceChange: (value: number) => void;
+  onStopBeadPriceChange: (value: number) => void;
   onAcousticSealantPriceChange: (value: number) => void;
   onPerimeterFixingsPriceChange: (value: number) => void;
   onSkimPlasterPriceChange: (value: number) => void;
   onDrywallSealerPriceChange: (value: number) => void;
+  onResilientBarPriceChange: (value: number) => void;
+  onPattressPriceChange: (value: number) => void;
+  onFlatPlatePriceChange: (value: number) => void;
   onResetPrices: () => void;
 }
 
+type RowKind = "board" | "stud" | "fixing" | "finish";
+
 interface TableRow {
   id: string;
+  kind: RowKind;
   label: string;
   product: string;
   qtyTotal: number;
@@ -58,7 +67,6 @@ export default function ResultsTable({
   walls,
   formWalls,
   prices,
-  spec,
   onMetalStudPriceChange,
   onTimberStudPriceChange,
   onBoardPriceChange,
@@ -68,32 +76,39 @@ export default function ResultsTable({
   onInsulationPriceChange,
   onFramingScrewPriceChange,
   onCornerBeadPriceChange,
+  onStopBeadPriceChange,
   onAcousticSealantPriceChange,
   onPerimeterFixingsPriceChange,
   onSkimPlasterPriceChange,
   onDrywallSealerPriceChange,
+  onResilientBarPriceChange,
+  onPattressPriceChange,
+  onFlatPlatePriceChange,
   onResetPrices,
 }: Props) {
   const multiWall = walls.length > 1;
 
-  // ── Brand-aware board name/price getters
-  const boardName = (t: BoardType) =>
-    spec.brand === "bg" ? BOARDS[t].bg_name : BOARDS[t].knauf_name;
-  const boardPrice = (t: BoardType) =>
-    spec.brand === "bg" ? prices.boards[t].bg : prices.boards[t].knauf;
-
-  // ── Aggregators keyed by variant
-  const boardsByType = new Map<BoardType, number>();
-  const studsBySize = new Map<StudSize, { pieces: number; trackPieces: number; nogginPieces: number }>();
+  // ── Aggregators keyed per brand+variant so mixed-brand projects split out
+  //    cleanly into one row per product variant.
+  const boardsByKey = new Map<string, { brand: Brand; type: BoardType; qty: number }>();
+  const studsByKey = new Map<string, {
+    brand: Brand; size: StudSize; pieces: number; trackPieces: number; nogginPieces: number;
+  }>();
   const screwsByLength = new Map<ScrewLength, number>();
+  // Jointing products per product id (across brands). A painted wall contributes
+  // boarding area to BOTH its brand's first-coat and top-coat products.
+  const jointingAreaByProduct = new Map<JointingProduct, number>();
   let framingScrews = 0;
   let insulation = 0;
-  let tapeMeters = 0;      // recomputed client-side from raw geometry
-  let jointingArea = 0;    // total m² of boarding that wants jointing
-  let cornerBeadMeters = 0; // 2 verticals + 1 head per opening (paint/skim only)
-  let sealantMeters = 0;    // head + sole + 2 abutments per wall
-  let perimeterFixings = 0; // anchors at 600 mm centres along head + sole
-  let skimArea = 0;         // total m² of board that wants a skim coat
+  let tapeMeters = 0;        // recomputed client-side from raw geometry
+  let cornerBeadMeters = 0;  // 2 verticals + 1 head per opening (paint/skim only)
+  let stopBeadMeters = 0;    // perimeter run where skim meets other surfaces
+  let sealantMeters = 0;     // head + sole + 2 abutments per wall
+  let perimeterFixings = 0;  // anchors at 600 mm centres along head + sole
+  let skimArea = 0;          // total m² of board that wants a skim coat
+  let resilientBarMeters = 0; // horizontal bars at 600 mm centres × length × sides
+  let pattressSheets = 0;     // 1 sheet per wall flagged for pattress
+  let flatPlateMeters = 0;    // 1 horizontal plate at mid-height per wall > 3 m
 
   // Per-wall screw length lookup (for perWall column)
   const screwLenForWall: ScrewLength[] = [];
@@ -105,25 +120,28 @@ export default function ResultsTable({
     const finish = FINISHES[f.finish];
     const studSpec = STUDS[f.stud_size];
 
-    // Boards
-    boardsByType.set(f.board_type, (boardsByType.get(f.board_type) ?? 0) + w.boards);
+    // Boards — keyed by (brand, type)
+    const bKey = `${f.brand}|${f.board_type}`;
+    const existingB = boardsByKey.get(bKey) ?? { brand: f.brand, type: f.board_type, qty: 0 };
+    existingB.qty += w.boards;
+    boardsByKey.set(bKey, existingB);
 
-    // Studs & track/plate
-    // Backend's track_linear_m is raw metres-with-waste; divide by the correct
-    // track length for this stud (metal = 3.6 m, timber plate = 3.0 m).
+    // Studs & track/plate — keyed by (brand, size). Timber stud entries have no
+    // brand distinction in the catalogue but we still key on brand for consistency
+    // (both Gyproc and Knauf sell the same CLS timber at the same rate).
     const trackPiecesCorrect = ceil(w.track_linear_m / studSpec.track_length_m);
-
-    // Noggins — one row per wall, metres equal to wall length (with waste),
-    // cut from 3 m CLS timber.
     const nogginPieces = studSpec.has_noggins
       ? ceil((w.length_m * (1 + f.stud_waste_pct / 100)) / 3.0)
       : 0;
 
-    const existing = studsBySize.get(f.stud_size) ?? { pieces: 0, trackPieces: 0, nogginPieces: 0 };
-    existing.pieces += w.studs_pieces;
-    existing.trackPieces += trackPiecesCorrect;
-    existing.nogginPieces += nogginPieces;
-    studsBySize.set(f.stud_size, existing);
+    const sKey = `${f.brand}|${f.stud_size}`;
+    const existingS = studsByKey.get(sKey) ?? {
+      brand: f.brand, size: f.stud_size, pieces: 0, trackPieces: 0, nogginPieces: 0,
+    };
+    existingS.pieces += w.studs_pieces;
+    existingS.trackPieces += trackPiecesCorrect;
+    existingS.nogginPieces += nogginPieces;
+    studsByKey.set(sKey, existingS);
 
     // Screws — pick length, bucket this wall's count
     const screwLen = pickBoardScrewLength(f.frame_material, f.board_type, f.layers);
@@ -146,11 +164,22 @@ export default function ResultsTable({
       tapeMeters += raw * (1 + f.joint_tape_waste_pct / 100);
     }
 
-    // Jointing — sum total boarding area (with waste) so we can divide by
-    // the chosen product's coverage.
+    // Jointing — painted walls need BOTH a first-coat filler and a top-coat
+    // finishing compound, brand-matched (Gyproc = Joint Filler + EasiFill,
+    // Knauf = Uniflott + Fill & Finish Light). Tiled / bare walls get nothing;
+    // skimmed walls go through the separate skim-plaster path below.
     if (finish.uses_jointing) {
+      const pack = PAINT_JOINTING_PACK[f.brand];
       const boardingM2 = w.boarded_area_m2 * f.sides * f.layers;
-      jointingArea += boardingM2 * (1 + f.easifill_waste_pct / 100);
+      const boardingWithWaste = boardingM2 * (1 + f.easifill_waste_pct / 100);
+      jointingAreaByProduct.set(
+        pack.first,
+        (jointingAreaByProduct.get(pack.first) ?? 0) + boardingWithWaste,
+      );
+      jointingAreaByProduct.set(
+        pack.top,
+        (jointingAreaByProduct.get(pack.top) ?? 0) + boardingWithWaste,
+      );
     }
 
     // Accessories:
@@ -167,69 +196,101 @@ export default function ResultsTable({
     //   Perimeter fixings = anchors at 600 mm centres, floor + ceiling.
     perimeterFixings += 2 * ceil(w.length_m / 0.6);
     //   Skim — full board face gets a 2 mm plaster skim (primed first).
+    //   Stop beads run the full perimeter of the wall (head + sole + two
+    //   abutments) to finish the skim edge against neighbouring surfaces.
     if (f.finish === "skim") {
       skimArea += w.boarded_area_m2 * f.sides * f.layers;
+      stopBeadMeters += 2 * w.length_m + 2 * w.height_m;
+    }
+    //   Resilient bars — horizontal bars at 600 mm centres up the stud,
+    //   each spanning the full wall length. Applied per side.
+    if (f.resilient_bars) {
+      const barsPerSide = ceil(w.height_m / (RESILIENT_BAR.spacing_mm / 1000)) + 1;
+      resilientBarMeters += barsPerSide * w.length_m * f.sides;
+    }
+    //   Pattress — 1 × 18 mm ply sheet per wall flagged.
+    if (f.pattress) pattressSheets += 1;
+    //   Fixing strap — GFS1 at the deflection head at 1200 mm centres, one
+    //   strap per 1.2 m of wall length. Only triggers on commercial-height
+    //   walls (> 3 m) where the deflection-head detail applies.
+    if (w.height_m > FLAT_PLATE.trigger_height_m) {
+      flatPlateMeters += w.length_m;
     }
   });
 
-  const tape = TAPES[spec.tape_type];
+  const tape = TAPES.paper; // always paper joint tape — brand-agnostic
   const tapeRolls = tapeMeters > 0 ? ceil(tapeMeters / tape.roll_length_m) : 0;
-
-  const jointing = JOINTING[spec.jointing_product];
-  const jointingUnits = jointingArea > 0 ? ceil(jointingArea / jointing.coverage_m2_per_unit) : 0;
 
   // ── Build rows in display order
   const rows: TableRow[] = [];
 
-  // Boards
-  BOARD_ORDER.filter((t) => boardsByType.has(t)).forEach((type) => {
-    const qty = boardsByType.get(type) ?? 0;
-    const price = boardPrice(type);
+  // Boards — one row per (brand, type) combination actually used
+  const boardOrder = BOARD_ORDER.flatMap<[Brand, BoardType]>(
+    (type) => (["bg", "knauf"] as Brand[]).map((brand) => [brand, type] as [Brand, BoardType]),
+  );
+  boardOrder.forEach(([brand, type]) => {
+    const entry = boardsByKey.get(`${brand}|${type}`);
+    if (!entry) return;
+    const name = brand === "bg" ? BOARDS[type].bg_name : BOARDS[type].knauf_name;
+    const price = brand === "bg" ? prices.boards[type].bg : prices.boards[type].knauf;
     rows.push({
-      id: `board-${type}`,
+      id: `board-${brand}-${type}`,
+      kind: "board",
       label: "Plasterboard",
-      product: boardName(type),
-      qtyTotal: qty,
+      product: name,
+      qtyTotal: entry.qty,
       unit: "sheets",
-      perWall: (i) => (formWalls[i]?.board_type === type ? walls[i].boards : null),
+      perWall: (i) =>
+        formWalls[i]?.brand === brand && formWalls[i]?.board_type === type
+          ? walls[i].boards
+          : null,
       unitPrice: price,
       priceUnit: "/ sheet",
-      totalCost: qty * price,
-      onPriceChange: (v) => onBoardPriceChange(type, spec.brand, v),
+      totalCost: entry.qty * price,
+      onPriceChange: (v) => onBoardPriceChange(type, brand, v),
     });
   });
 
-  // Studs + track/plate + noggins, grouped per stud size
-  [...METAL_STUD_ORDER, ...TIMBER_STUD_ORDER].filter((s) => studsBySize.has(s)).forEach((size) => {
-    const agg = studsBySize.get(size)!;
+  // Studs + track/plate + noggins — one row per (brand, stud size)
+  const studOrder = [...METAL_STUD_ORDER, ...TIMBER_STUD_ORDER].flatMap<[Brand, StudSize]>(
+    (size) => (["bg", "knauf"] as Brand[]).map((brand) => [brand, size] as [Brand, StudSize]),
+  );
+  studOrder.forEach(([brand, size]) => {
+    const agg = studsByKey.get(`${brand}|${size}`);
+    if (!agg) return;
     const studSpec = STUDS[size];
     const timber = isTimber(size);
 
-    // Prices
     const studPrice = timber
       ? prices.timber_studs[size as TimberStudSize]
       : prices.metal_studs[size as MetalStudSize].piece;
     const trackPrice = timber
-      ? prices.timber_studs[size as TimberStudSize] // plate = same timber as stud
+      ? prices.timber_studs[size as TimberStudSize]
       : prices.metal_studs[size as MetalStudSize].track;
 
-    const studProductName = (timber || spec.brand === "bg" || !studSpec.knauf_name)
-      ? studSpec.bg_name
-      : studSpec.knauf_name;
-    const trackProductName = (timber || spec.brand === "bg" || !studSpec.track_knauf_name)
-      ? studSpec.track_bg_name
-      : studSpec.track_knauf_name;
+    const studProductName =
+      timber || brand === "bg" || !studSpec.knauf_name
+        ? studSpec.bg_name
+        : studSpec.knauf_name;
+    const trackProductName =
+      timber || brand === "bg" || !studSpec.track_knauf_name
+        ? studSpec.track_bg_name
+        : studSpec.track_knauf_name;
 
     const studLabel = timber ? `Timber studs (${size.replace("T", "")})` : `Studs (${size})`;
     const trackLabel = timber ? `Plates (${size.replace("T", "")})` : `Track (${size})`;
 
     rows.push({
-      id: `stud-${size}`,
+      id: `stud-${brand}-${size}`,
+      kind: "stud",
       label: studLabel,
       product: studProductName,
       qtyTotal: agg.pieces,
       unit: timber ? "lengths" : "pieces",
-      perWall: (i) => (formWalls[i]?.stud_size === size ? walls[i].studs_pieces : null),
+      perWall: (i) =>
+        formWalls[i]?.brand === brand && formWalls[i]?.stud_size === size
+          ? walls[i].studs_pieces
+          : null,
       unitPrice: studPrice,
       priceUnit: timber ? "/ length" : "/ piece",
       totalCost: agg.pieces * studPrice,
@@ -239,13 +300,14 @@ export default function ResultsTable({
     });
 
     rows.push({
-      id: `track-${size}`,
+      id: `track-${brand}-${size}`,
+      kind: "stud",
       label: trackLabel,
       product: trackProductName,
       qtyTotal: agg.trackPieces,
       unit: "lengths",
       perWall: (i) => {
-        if (formWalls[i]?.stud_size !== size) return null;
+        if (formWalls[i]?.brand !== brand || formWalls[i]?.stud_size !== size) return null;
         return ceil(walls[i].track_linear_m / studSpec.track_length_m);
       },
       unitPrice: trackPrice,
@@ -258,13 +320,14 @@ export default function ResultsTable({
 
     if (timber && agg.nogginPieces > 0) {
       rows.push({
-        id: `noggin-${size}`,
+        id: `noggin-${brand}-${size}`,
+        kind: "stud",
         label: `Noggins (${size.replace("T", "")})`,
         product: `${studSpec.bg_name} — offcut for mid-height noggins`,
         qtyTotal: agg.nogginPieces,
         unit: "lengths",
         perWall: (i) => {
-          if (formWalls[i]?.stud_size !== size) return null;
+          if (formWalls[i]?.brand !== brand || formWalls[i]?.stud_size !== size) return null;
           const f = formWalls[i];
           return ceil((walls[i].length_m * (1 + f.stud_waste_pct / 100)) / 3.0);
         },
@@ -279,6 +342,7 @@ export default function ResultsTable({
   if (insulation > 0) {
     rows.push({
       id: "insulation",
+      kind: "fixing",
       label: "Insulation",
       product: "Isover APR 1200 50 mm",
       qtyTotal: insulation,
@@ -291,16 +355,20 @@ export default function ResultsTable({
     });
   }
 
-  // Board screws — grouped by length
+  // Board screws — grouped by length. Brand name follows majority brand in the
+  // project (cosmetic; the screw itself is functionally identical across brands).
+  const majorityBrand: Brand = formWalls.filter((f) => f.brand === "knauf").length
+    > formWalls.length / 2 ? "knauf" : "bg";
   (Object.keys(SCREWS) as ScrewLength[])
     .filter((l) => (screwsByLength.get(l) ?? 0) > 0)
     .forEach((len) => {
       const qty = screwsByLength.get(len)!;
       const spec_ = SCREWS[len];
-      const productName = spec.brand === "bg" ? spec_.bg_name : spec_.knauf_name;
+      const productName = majorityBrand === "bg" ? spec_.bg_name : spec_.knauf_name;
       const price = prices.screws[len];
       rows.push({
         id: `screw-${len}`,
+        kind: "fixing",
         label: `Board screws ${len.replace("_coarse", " coarse").replace("mm", " mm")}`,
         product: productName,
         qtyTotal: qty,
@@ -317,8 +385,9 @@ export default function ResultsTable({
   if (framingScrews > 0) {
     rows.push({
       id: "framing",
+      kind: "fixing",
       label: "Framing screws",
-      product: spec.brand === "bg" ? FRAMING_SCREWS.bg_name : FRAMING_SCREWS.knauf_name,
+      product: majorityBrand === "bg" ? FRAMING_SCREWS.bg_name : FRAMING_SCREWS.knauf_name,
       qtyTotal: framingScrews,
       unit: "screws",
       perWall: (i) =>
@@ -331,17 +400,18 @@ export default function ResultsTable({
   }
 
   if (tapeRolls > 0) {
-    const tapeName = spec.brand === "bg" ? tape.bg_name : tape.knauf_name;
+    const tapeName = majorityBrand === "bg" ? tape.bg_name : tape.knauf_name;
     rows.push({
       id: "tape",
+      kind: "finish",
       label: "Joint tape",
       product: tapeName,
       qtyTotal: tapeRolls,
       unit: "rolls",
-      perWall: () => null, // tape is project-level; per-wall column left blank
-      unitPrice: prices.tape[spec.tape_type],
+      perWall: () => null,
+      unitPrice: prices.tape.paper,
       priceUnit: "/ roll",
-      totalCost: tapeRolls * prices.tape[spec.tape_type],
+      totalCost: tapeRolls * prices.tape.paper,
       onPriceChange: onTapePriceChange,
     });
   }
@@ -351,6 +421,7 @@ export default function ResultsTable({
     const pieces = ceil(cornerBeadMeters / CORNER_BEAD.length_m);
     rows.push({
       id: "corner-bead",
+      kind: "finish",
       label: "Corner beads",
       product: CORNER_BEAD.name,
       qtyTotal: pieces,
@@ -363,10 +434,28 @@ export default function ResultsTable({
     });
   }
 
+  if (stopBeadMeters > 0) {
+    const pieces = ceil(stopBeadMeters / STOP_BEAD.length_m);
+    rows.push({
+      id: "stop-bead",
+      kind: "finish",
+      label: "Stop beads",
+      product: STOP_BEAD.name,
+      qtyTotal: pieces,
+      unit: "lengths",
+      perWall: () => null,
+      unitPrice: prices.stop_bead_per_length,
+      priceUnit: "/ length",
+      totalCost: pieces * prices.stop_bead_per_length,
+      onPriceChange: onStopBeadPriceChange,
+    });
+  }
+
   if (sealantMeters > 0) {
     const cartridges = ceil(sealantMeters / ACOUSTIC_SEALANT.coverage_m_per_cartridge);
     rows.push({
       id: "acoustic-sealant",
+      kind: "fixing",
       label: "Acoustic sealant",
       product: ACOUSTIC_SEALANT.name,
       qtyTotal: cartridges,
@@ -379,9 +468,68 @@ export default function ResultsTable({
     });
   }
 
+  if (resilientBarMeters > 0) {
+    const bars = ceil(resilientBarMeters / RESILIENT_BAR.length_m);
+    rows.push({
+      id: "resilient-bars",
+      kind: "fixing",
+      label: "Resilient bars",
+      product: RESILIENT_BAR.name,
+      qtyTotal: bars,
+      unit: "lengths",
+      perWall: (i) => {
+        const fw = formWalls[i];
+        if (!fw?.resilient_bars) return null;
+        const barsPerSide = ceil(walls[i].height_m / (RESILIENT_BAR.spacing_mm / 1000)) + 1;
+        return ceil((barsPerSide * walls[i].length_m * fw.sides) / RESILIENT_BAR.length_m);
+      },
+      unitPrice: prices.resilient_bar_per_length,
+      priceUnit: "/ length",
+      totalCost: bars * prices.resilient_bar_per_length,
+      onPriceChange: onResilientBarPriceChange,
+    });
+  }
+
+  if (flatPlateMeters > 0) {
+    const pieces = ceil(flatPlateMeters / FLAT_PLATE.centres_m);
+    rows.push({
+      id: "flat-plate",
+      kind: "stud",
+      label: "Fixing straps",
+      product: FLAT_PLATE.name,
+      qtyTotal: pieces,
+      unit: "straps",
+      perWall: (i) =>
+        walls[i].height_m > FLAT_PLATE.trigger_height_m
+          ? ceil(walls[i].length_m / FLAT_PLATE.centres_m)
+          : null,
+      unitPrice: prices.flat_plate_per_length,
+      priceUnit: "/ strap",
+      totalCost: pieces * prices.flat_plate_per_length,
+      onPriceChange: onFlatPlatePriceChange,
+    });
+  }
+
+  if (pattressSheets > 0) {
+    rows.push({
+      id: "pattress",
+      kind: "fixing",
+      label: "Pattress plywood",
+      product: PATTRESS.name,
+      qtyTotal: pattressSheets,
+      unit: "sheets",
+      perWall: (i) => (formWalls[i]?.pattress ? 1 : null),
+      unitPrice: prices.pattress_per_sheet,
+      priceUnit: "/ sheet",
+      totalCost: pattressSheets * prices.pattress_per_sheet,
+      onPriceChange: onPattressPriceChange,
+    });
+  }
+
   if (perimeterFixings > 0) {
     rows.push({
       id: "perimeter-fixings",
+      kind: "fixing",
       label: "Perimeter fixings",
       product: PERIMETER_FIXINGS.name,
       qtyTotal: perimeterFixings,
@@ -399,6 +547,7 @@ export default function ResultsTable({
     const sealerCans = ceil(skimArea / DRYWALL_SEALER.coverage_m2_per_can);
     rows.push({
       id: "drywall-sealer",
+      kind: "finish",
       label: "Drywall primer",
       product: DRYWALL_SEALER.name,
       qtyTotal: sealerCans,
@@ -413,6 +562,7 @@ export default function ResultsTable({
     const plasterBags = ceil(skimArea * 1.1 / SKIM_PLASTER.coverage_m2_per_bag);
     rows.push({
       id: "skim-plaster",
+      kind: "finish",
       label: "Skim plaster",
       product: SKIM_PLASTER.name,
       qtyTotal: plasterBags,
@@ -425,20 +575,27 @@ export default function ResultsTable({
     });
   }
 
-  if (jointingUnits > 0) {
+  // Jointing — emit one row per product actually needed (first-coat filler +
+  // top-coat finishing compound, brand-matched from the paint pack).
+  (Object.keys(JOINTING) as JointingProduct[]).forEach((product) => {
+    const area = jointingAreaByProduct.get(product);
+    if (!area || area <= 0) return;
+    const jSpec = JOINTING[product];
+    const units = ceil(area / jSpec.coverage_m2_per_unit);
     rows.push({
-      id: "jointing",
+      id: `jointing-${product}`,
+      kind: "finish",
       label: "Jointing compound",
-      product: `${jointing.name} (${jointing.unit_label})`,
-      qtyTotal: jointingUnits,
-      unit: jointing.unit_label.includes("tub") ? "tubs" : "bags",
+      product: `${jSpec.name} (${jSpec.unit_label})`,
+      qtyTotal: units,
+      unit: jSpec.unit_label.includes("tub") ? "tubs" : "bags",
       perWall: () => null,
-      unitPrice: prices.jointing[spec.jointing_product],
-      priceUnit: `/ ${jointing.unit_label.includes("tub") ? "tub" : "bag"}`,
-      totalCost: jointingUnits * prices.jointing[spec.jointing_product],
-      onPriceChange: onJointingPriceChange,
+      unitPrice: prices.jointing[product],
+      priceUnit: `/ ${jSpec.unit_label.includes("tub") ? "tub" : "bag"}`,
+      totalCost: units * prices.jointing[product],
+      onPriceChange: (v) => onJointingPriceChange(product, v),
     });
-  }
+  });
 
   const grandTotal = rows.reduce((sum, r) => sum + r.totalCost, 0);
   const vatAmount = grandTotal * VAT_RATE;
@@ -484,6 +641,9 @@ export default function ResultsTable({
           <button type="button" className="reset-prices-btn" onClick={onResetPrices}>
             Reset prices
           </button>
+          <button type="button" className="export-btn" onClick={() => window.print()}>
+            Save as PDF
+          </button>
           <button type="button" className="export-btn" onClick={downloadCSV}>
             Export CSV
           </button>
@@ -521,7 +681,7 @@ export default function ResultsTable({
         </thead>
         <tbody>
           {rows.map((r) => (
-            <tr key={r.id}>
+            <tr key={r.id} data-kind={r.kind}>
               <td className="material-label">{r.label}</td>
               <td className="product-name">{r.product}</td>
               {multiWall &&
