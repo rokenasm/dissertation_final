@@ -1,4 +1,7 @@
+import { usePageTitle } from "../hooks/usePageTitle";
+
 export default function AboutPage() {
+  usePageTitle("About");
   return (
     <section className="section section-narrow essay">
       <div className="essay-head">
@@ -37,11 +40,19 @@ export default function AboutPage() {
         <h3>What this is</h3>
         <p>
           RMBuild does one thing. It takes a drawing — a PDF, a photo, a
-          sketch — and gives you the material list to price a GypWall
-          partition. Boards, studs, track, insulation, fixings, tape.
-          Every number tied to the published British Gypsum spec
-          (A206001). Prices are editable because every merchant is
-          different.
+          sketch — and gives you the full material list to price a
+          partition wall. Boards, studs, track or plates, insulation,
+          fixings, tape, jointing, sealant, corner beads, skim plaster
+          when the wall needs it. Every number tied to a published spec.
+          Prices are editable because every merchant is different.
+        </p>
+        <p>
+          Metal studwork follows British Gypsum GypWall Single Frame
+          (A206001) — that's what I worked on. Timber partitions follow
+          UK domestic convention (38&nbsp;×&nbsp;89&nbsp;mm CLS at 400&nbsp;mm
+          centres, NHBC standards). Timber is published practice rather
+          than first-hand experience, so if a chippy reading this spots
+          something off, the contact form is one click away.
         </p>
 
         <h3>What it isn't</h3>
