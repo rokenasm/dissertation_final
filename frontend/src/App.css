@@ -93,7 +93,7 @@ em {
 }
 
 .navbar-inner {
-  max-width: none;
+  max-width: 1320px;
   margin: 0 auto;
   padding: 1.1rem 2.5rem;
   display: grid;
@@ -279,14 +279,13 @@ em {
 /* ── Sections ── */
 
 .section {
-  max-width: none;
+  max-width: 1320px;
   margin: 0 auto;
   padding: 2.5rem 2.5rem 3.5rem;
 }
 
-/* Reading-heavy pages (About, Stories, Contact, Changelog) still cap their
-   text column for legibility on wide screens — the section itself goes
-   edge-to-edge, but we centre the content. */
+/* Reading-heavy pages (About, Stories, Contact, Changelog) cap to a narrower
+   text column for legibility. */
 .section-narrow {
   max-width: 860px;
 }
@@ -334,7 +333,7 @@ em {
 
 /* ── Section divider ── */
 .section-divider {
-  max-width: none;
+  max-width: 1320px;
   margin: 0 auto;
   padding: 0 2.5rem;
   display: flex;
@@ -554,7 +553,7 @@ em {
 /* ── Process list ── */
 
 .process {
-  max-width: none;
+  max-width: 1320px;
   margin: 0 auto;
   padding: 6rem 2.5rem;
 }
@@ -761,7 +760,7 @@ em {
 /* ── CTA ── */
 
 .cta {
-  max-width: none;
+  max-width: 1320px;
   margin: 0 auto;
   padding: 4rem 2.5rem 6rem;
 }
@@ -953,7 +952,7 @@ em {
 }
 
 .footer-inner {
-  max-width: none;
+  max-width: 1320px;
   margin: 0 auto;
   padding: 3.5rem 2.5rem 2rem;
   display: grid;
@@ -1003,7 +1002,7 @@ em {
 }
 
 .footer-bottom {
-  max-width: none;
+  max-width: 1320px;
   margin: 0 auto;
   padding: 1.5rem 2.5rem 2rem;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
@@ -2871,7 +2870,7 @@ input[type="checkbox"] {
 /* ── Hero sheet — laid out like an architect's drawing sheet ── */
 
 .hero-sheet {
-  max-width: none;
+  max-width: 1320px;
   margin: 2rem auto 0;
   padding: 0 2.5rem;
 }
@@ -3062,7 +3061,7 @@ input[type="checkbox"] {
 /* ── Spec table section ── */
 
 .spec-section {
-  max-width: none;
+  max-width: 1320px;
   margin: 3rem auto;
   padding: 0 2.5rem;
 }
@@ -3121,7 +3120,7 @@ input[type="checkbox"] {
 /* ── Story teaser on homepage ── */
 
 .story-teaser {
-  max-width: none;
+  max-width: 1320px;
   margin: 3rem auto;
   padding: 3rem 2.5rem;
   border-top: 1px solid var(--paper-3);
@@ -3190,6 +3189,50 @@ input[type="checkbox"] {
   margin-bottom: 3rem;
   padding-bottom: 2rem;
   border-bottom: 1px dashed var(--paper-3);
+}
+
+.essay-head--with-photo {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(220px, 1fr);
+  gap: 2.5rem;
+  align-items: start;
+}
+
+@media (max-width: 760px) {
+  .essay-head--with-photo {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
+.essay-photo {
+  margin: 0;
+  padding: 0.65rem 0.65rem 0.4rem;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  box-shadow: 5px 5px 0 var(--redline);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.essay-photo img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--paper-3);
+  object-fit: cover;
+  aspect-ratio: 4 / 5;
+  background: var(--paper-2);
+}
+
+.essay-photo figcaption {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--ink-3);
+  text-align: center;
+  letter-spacing: 0.04em;
+  padding: 0 0.2rem;
 }
 
 .essay-title {
