@@ -1,5 +1,6 @@
 import type { WallFormData } from "../types";
 import WallForm from "./WallForm";
+import WallDiagram from "./WallDiagram";
 
 interface Props {
   index: number;
@@ -10,6 +11,9 @@ interface Props {
 }
 
 export default function WallCard({ index, total, data, onChange, onRemove }: Props) {
+  const hasDims =
+    parseFloat(data.length) > 0 && parseFloat(data.height) > 0;
+
   return (
     <div className="wall-card">
       <div className="wall-card-header">
@@ -23,6 +27,12 @@ export default function WallCard({ index, total, data, onChange, onRemove }: Pro
         )}
       </div>
       <WallForm data={data} onChange={onChange} wallIndex={index} />
+      {hasDims && (
+        <div className="wall-diagram-wrap">
+          <p className="wall-diagram-label">Wall diagram</p>
+          <WallDiagram data={data} />
+        </div>
+      )}
     </div>
   );
 }
