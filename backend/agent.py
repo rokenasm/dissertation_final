@@ -33,8 +33,12 @@ _load_env()
 
 CLAUDE_MODEL = "claude-sonnet-4-6"
 
-# Poppler binary path — required on Windows for PDF conversion
-POPPLER_PATH = r"C:\Users\roken\Downloads\Release-25.12.0-0\poppler-25.12.0\Library\bin"
+# Poppler binary path — only required on Windows where poppler isn't usually on
+# PATH. On Linux / macOS pdf2image auto-detects it from PATH when POPPLER_PATH
+# is None (install via `apt install poppler-utils` or `brew install poppler`).
+# Windows users: either add the poppler `bin` folder to PATH, or set the
+# POPPLER_PATH env var to its location.
+POPPLER_PATH = os.environ.get("POPPLER_PATH") or None
 
 ANALYSIS_PROMPT = """You are an experienced UK drylining estimator analysing a construction floor plan or elevation drawing.
 
@@ -165,10 +169,21 @@ If no partition walls are detectable, return walls as [] with a note."""
 
 
 def pdf_to_image_bytes(pdf_bytes: bytes) -> bytes:
-    """Convert the first page of a PDF to JPEG bytes."""
-    pages = convert_from_bytes(
-        pdf_bytes, dpi=150, first_page=1, last_page=1, poppler_path=POPPLER_PATH
-    )
+    """Convert the first page of a PDF to JPEG bytes.
+
+    Raises a clear ValueError if poppler is missing, so the frontend shows a
+    helpful message instead of a raw stacktrace.
+    """
+    try:
+        pages = convert_from_bytes(
+            pdf_bytes, dpi=150, first_page=1, last_page=1, poppler_path=POPPLER_PATH
+        )
+    except Exception as exc:  # pdf2image.exceptions.PDFInfoNotInstalledError etc.
+        raise ValueError(
+            "PDF conversion requires poppler. Install poppler-utils (Linux / macOS) "
+            "or set the POPPLER_PATH environment variable to your poppler `bin` "
+            "directory (Windows)."
+        ) from exc
     buf = io.BytesIO()
     pages[0].save(buf, format="JPEG", quality=90)
     return buf.getvalue()
