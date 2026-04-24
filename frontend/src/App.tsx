@@ -8,6 +8,7 @@ import StoriesPage from "./pages/StoriesPage";
 import ChangelogPage from "./pages/ChangelogPage";
 import ContactPage from "./pages/ContactPage";
 import AdminPage from "./pages/AdminPage";
+import NotFoundPage from "./pages/NotFoundPage";
 import "./App.css";
 
 export default function App() {
@@ -23,6 +24,7 @@ export default function App() {
           <Route path="/changelog" element={<ChangelogPage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/admin" element={<AdminPage />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </main>
       <Footer />
