@@ -1,9 +1,13 @@
 """
-agent.py — AI floor plan analysis agent using Claude vision (Anthropic).
+agent.py — Floor plan analysis agent.
 
-Accepts a floor plan image or PDF, sends it to Claude with a structured prompt,
-and returns a list of detected partition walls with estimated dimensions.
-The user can review and edit these before running the material calculator.
+Accepts a floor plan image or PDF, sends it to a vision-capable AI service
+with a structured prompt, and returns a list of detected partition walls
+with estimated dimensions. The user reviews and edits these before running
+the material calculator.
+
+Currently uses the Anthropic Claude API (see CLAUDE_MODEL below); the
+service can be swapped without changing the rest of the application.
 """
 
 import os
@@ -191,7 +195,7 @@ def pdf_to_image_bytes(pdf_bytes: bytes) -> bytes:
 
 def analyse_floor_plan(image_bytes: bytes, mime_type: str) -> dict:
     """
-    Send a floor plan image to Claude and extract wall dimensions.
+    Send a floor plan image to the vision model and extract wall dimensions.
 
     Args:
         image_bytes: Raw image data.
@@ -207,7 +211,7 @@ def analyse_floor_plan(image_bytes: bytes, mime_type: str) -> dict:
     if not api_key:
         raise ValueError("ANTHROPIC_API_KEY not set in backend/.env")
 
-    # Convert PDF to image before sending to Claude
+    # Convert PDF to image before sending to the model
     if mime_type == "application/pdf":
         image_bytes = pdf_to_image_bytes(image_bytes)
         mime_type = "image/jpeg"
@@ -242,14 +246,14 @@ def analyse_floor_plan(image_bytes: bytes, mime_type: str) -> dict:
 
     raw = message.content[0].text.strip()
 
-    # Strip markdown code fences if Claude wraps the JSON
+    # Strip markdown code fences if the model wraps the JSON
     raw = re.sub(r"^```(?:json)?\s*", "", raw)
     raw = re.sub(r"\s*```$", "", raw)
 
     try:
         result = json.loads(raw)
     except json.JSONDecodeError as exc:
-        raise ValueError(f"Claude returned non-JSON response: {raw[:300]}") from exc
+        raise ValueError(f"Vision model returned non-JSON response: {raw[:300]}") from exc
 
     if "walls" not in result:
         raise ValueError(f"Unexpected response structure: {raw[:300]}")
