@@ -28,10 +28,12 @@ export default function WallCard({ index, total, data, onChange, onRemove }: Pro
       </div>
       <WallForm data={data} onChange={onChange} wallIndex={index} />
       {hasDims && (
-        <div className="wall-diagram-wrap">
-          <p className="wall-diagram-label">Wall diagram</p>
+        <details className="wall-diagram-wrap">
+          <summary className="wall-diagram-toggle">
+            <span>Wall diagram</span>
+          </summary>
           <WallDiagram data={data} />
-        </div>
+        </details>
       )}
     </div>
   );
