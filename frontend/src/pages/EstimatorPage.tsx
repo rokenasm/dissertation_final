@@ -22,7 +22,7 @@ function newWall(persona: TwoPersona): WallFormData {
   return { ...PERSONA_DEFAULTS[persona], length: "", height: "" };
 }
 
-// Clamp an arbitrary Claude string to one of our known StudSize enum values.
+// Clamp an arbitrary string from the vision model to one of our known StudSize enum values.
 function coerceStudSize(raw: string | undefined): StudSize | null {
   if (!raw) return null;
   const s = raw.trim().toUpperCase();
