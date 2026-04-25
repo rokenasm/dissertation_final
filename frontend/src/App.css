@@ -1672,14 +1672,47 @@ input[type="checkbox"] {
   padding-top: 0.75rem;
 }
 
-.wall-diagram-label {
+.wall-diagram-toggle {
+  list-style: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.95rem;
+  background: var(--paper);
+  border: 1.5px dashed var(--ink);
   font-family: var(--font-mono);
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--ink-3);
-  margin: 0 0 0.5rem;
+  letter-spacing: 0.08em;
+  color: var(--ink);
+  user-select: none;
+  transition: background 0.15s, border-style 0.15s;
+}
+
+.wall-diagram-toggle::-webkit-details-marker { display: none; }
+.wall-diagram-toggle::marker { display: none; }
+
+.wall-diagram-toggle::before {
+  content: "▸";
+  color: var(--redline);
+  font-size: 0.85rem;
+  transition: transform 0.15s;
+}
+
+.wall-diagram-wrap[open] .wall-diagram-toggle {
+  background: var(--paper-2);
+  border-style: solid;
+  margin-bottom: 0.5rem;
+}
+
+.wall-diagram-wrap[open] .wall-diagram-toggle::before {
+  content: "▾";
+}
+
+.wall-diagram-toggle:hover {
+  background: var(--paper-2);
 }
 
 .wall-diagram {
@@ -3233,6 +3266,34 @@ input[type="checkbox"] {
   text-align: center;
   letter-spacing: 0.04em;
   padding: 0 0.2rem;
+}
+
+/* Inline mid-essay figure — for the construction photo */
+.essay-figure {
+  margin: 2rem 0;
+  padding: 0.55rem 0.55rem 0.4rem;
+  background: var(--paper);
+  border: 1.5px solid var(--ink);
+  box-shadow: 4px 4px 0 var(--redline);
+}
+
+.essay-figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--paper-3);
+  background: var(--paper-2);
+  max-height: 440px;
+  object-fit: cover;
+}
+
+.essay-figure figcaption {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--ink-3);
+  padding: 0.6rem 0.5rem 0.2rem;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
 }
 
 .essay-title {
