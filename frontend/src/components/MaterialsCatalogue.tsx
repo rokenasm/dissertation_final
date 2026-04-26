@@ -45,26 +45,24 @@ export default function MaterialsCatalogue({ prices }: Props) {
               </tr>
             </thead>
             <tbody>
-              {METAL_STUD_ORDER.map((size) => {
+              {METAL_STUD_ORDER.flatMap((size) => {
                 const s = STUDS[size];
-                return (
-                  <>
-                    <tr key={`${size}-stud`}>
-                      <td className="cat-size">{size} stud</td>
-                      <td>{s.bg_name}</td>
-                      <td>{s.knauf_name ?? "—"}</td>
-                      <td className="cat-label">{s.partition_label}</td>
-                      <td className="cat-price">{fmt(prices.metal_studs[size].piece)} / length</td>
-                    </tr>
-                    <tr key={`${size}-track`}>
-                      <td className="cat-size">{size} track</td>
-                      <td>{s.track_bg_name}</td>
-                      <td>{s.track_knauf_name ?? "—"}</td>
-                      <td className="cat-label">Floor &amp; ceiling channel</td>
-                      <td className="cat-price">{fmt(prices.metal_studs[size].track)} / length</td>
-                    </tr>
-                  </>
-                );
+                return [
+                  <tr key={`${size}-stud`}>
+                    <td className="cat-size">{size} stud</td>
+                    <td>{s.bg_name}</td>
+                    <td>{s.knauf_name ?? "—"}</td>
+                    <td className="cat-label">{s.partition_label}</td>
+                    <td className="cat-price">{fmt(prices.metal_studs[size].piece)} / length</td>
+                  </tr>,
+                  <tr key={`${size}-track`}>
+                    <td className="cat-size">{size} track</td>
+                    <td>{s.track_bg_name}</td>
+                    <td>{s.track_knauf_name ?? "—"}</td>
+                    <td className="cat-label">Floor &amp; ceiling channel</td>
+                    <td className="cat-price">{fmt(prices.metal_studs[size].track)} / length</td>
+                  </tr>,
+                ];
               })}
             </tbody>
           </table>
