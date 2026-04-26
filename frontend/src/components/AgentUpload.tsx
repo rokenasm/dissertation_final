@@ -143,45 +143,50 @@ export default function AgentUpload({
                 const typesById = new Map<string, DetectedWallType>();
                 (result.wall_types ?? []).forEach((t) => typesById.set(t.id, t));
                 return (
-                  <table className="detected-table">
-                    <thead>
-                      <tr>
-                        <th>Wall</th>
-                        <th>Size</th>
-                        <th>Build-up</th>
-                        <th>Openings</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {result.walls.map((w, i) => {
-                        const type = w.type_id ? typesById.get(w.type_id) : undefined;
-                        return (
-                          <tr key={i}>
-                            <td>
-                              <strong>{w.label}</strong>
-                              {type?.spec_code && (
-                                <span className="detected-spec"> · {type.spec_code}</span>
-                              )}
-                            </td>
-                            <td>{w.length} m × {w.height} m</td>
-                            <td className="detected-buildup">{buildupSummary(type)}</td>
-                            <td>
+                  <ul className="detected-list">
+                    {result.walls.map((w, i) => {
+                      const type = w.type_id ? typesById.get(w.type_id) : undefined;
+                      return (
+                        <li key={i} className="detected-item">
+                          <div className="detected-item-head">
+                            <strong>{w.label || `Wall ${i + 1}`}</strong>
+                            {type?.spec_code && (
+                              <span className="detected-spec">{type.spec_code}</span>
+                            )}
+                          </div>
+                          <div className="detected-item-row">
+                            <span className="detected-item-label">Size</span>
+                            <span className="detected-item-value">
+                              {w.length} m × {w.height} m
+                            </span>
+                          </div>
+                          <div className="detected-item-row">
+                            <span className="detected-item-label">Build-up</span>
+                            <span className="detected-item-value detected-buildup">
+                              {buildupSummary(type)}
+                            </span>
+                          </div>
+                          <div className="detected-item-row">
+                            <span className="detected-item-label">Openings</span>
+                            <span className="detected-item-value">
                               {w.openings.length > 0
-                                ? w.openings.map((o) => `${o.label} ${o.width}×${o.height}m`).join(", ")
+                                ? w.openings
+                                    .map((o) => `${o.label} ${o.width}×${o.height}m`)
+                                    .join(", ")
                                 : "—"}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                            </span>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
                 );
               })()}
               <p className="detected-note">
-                Walls with a build-up above came from the partition types key
-                and will pre-fill stud / board / skins / insulation when you load
+                Walls with a build-up came from the partition types key and
+                will pre-fill stud / board / skins / insulation when you load
                 them. Walls showing "—" didn't match any type — they fall back
-                to the current persona default and you can set them manually.
+                to the current default and you can set them manually.
               </p>
               <button type="button" className="btn btn-primary" onClick={() => onWallsDetected(result.walls, result.wall_types)}>
                 Load into walls below →
