@@ -3995,24 +3995,222 @@ html, body { overflow-x: hidden; }
   }
   .total-hero-value { font-size: 2.1rem; }
 
-  /* Results table: horizontal scroll wrapper */
-  .results-table,
-  .catalogue-table,
-  .detected-table {
+  /* Takeoff results — 2-line list per row on mobile. Material + total on
+     top line, product / qty / unit price on muted second line. Per-wall
+     breakdown columns hidden (still in the CSV export). */
+  .results-table {
     display: block;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    white-space: nowrap;
-    max-width: 100%;
-  }
-  .results-table thead,
-  .results-table tbody,
-  .results-table tfoot,
-  .catalogue-table thead,
-  .catalogue-table tbody {
-    display: table;
+    overflow-x: visible;
+    white-space: normal;
     width: 100%;
-    min-width: 560px;
+  }
+  .results-table thead { display: none; }
+  .results-table tbody, .results-table tfoot { display: block; }
+  .results-table tr {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    column-gap: 0.6rem;
+    row-gap: 0.15rem;
+    padding: 0.55rem 0.15rem;
+    border-bottom: 1px dashed var(--paper-3);
+  }
+  .results-table td {
+    display: block;
+    padding: 0;
+    border: none;
+    white-space: normal;
+    font-size: 0.74rem;
+    line-height: 1.35;
+    color: var(--ink-2);
+  }
+  .results-table .material-label {
+    grid-column: 1;
+    font-weight: 700;
+    font-size: 0.84rem;
+    color: var(--ink);
+  }
+  .results-table .total-col {
+    grid-column: 2;
+    text-align: right;
+    font-weight: 700;
+    font-size: 0.84rem;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  .results-table .product-name {
+    grid-column: 1 / -1;
+    font-size: 0.72rem;
+    color: var(--ink-3);
+  }
+  .results-table tbody td.qty {
+    grid-column: 1 / -1;
+    font-size: 0.7rem;
+    color: var(--ink-3);
+    font-family: var(--font-mono);
+  }
+  /* Hide per-wall breakdown columns on mobile (only the totals qty stays). */
+  .results-table tbody td.qty:not(:nth-last-child(3)) { display: none; }
+  .results-table .price-cell {
+    grid-column: 1 / -1;
+    font-size: 0.7rem;
+  }
+  .results-table .price-input-wrap {
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+  .results-table .price-input {
+    width: 70px;
+    font-size: 0.78rem;
+  }
+  /* Footer totals — bigger and bolder so they stand out as the bill. */
+  .results-table .grand-total-row,
+  .results-table .vat-row {
+    background: var(--paper-2);
+    padding: 0.55rem 0.55rem;
+    border-bottom: none;
+    margin-top: 0.25rem;
+  }
+  .results-table .grand-total-label {
+    grid-column: 1;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .results-table .grand-total-value {
+    grid-column: 2;
+    text-align: right;
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  .results-table .grand-total-row--final .grand-total-value {
+    font-size: 1.1rem;
+    color: var(--redline);
+  }
+
+  /* Catalogue still uses the horizontal-scroll fallback above; the 2-line
+     list rules below override it for catalogue specifically. */
+  .catalogue-table {
+    display: block;
+    overflow-x: visible;
+    white-space: normal;
+    width: 100%;
+  }
+
+  /* Catalogue tables — tight 2-line list on mobile.
+     Row layout: first cell + last cell on top line (name + price),
+     everything in between gets pushed to a small grey second line. */
+  .catalogue-table {
+    display: block;
+    overflow-x: visible;
+    white-space: normal;
+    width: 100%;
+  }
+  .catalogue-table thead { display: none; }
+  .catalogue-table tbody { display: block; }
+  .catalogue-table tr {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    column-gap: 0.6rem;
+    row-gap: 0.1rem;
+    padding: 0.45rem 0.1rem;
+    border-bottom: 1px dashed var(--paper-3);
+  }
+  .catalogue-table tr:last-child { border-bottom: none; }
+  .catalogue-table td {
+    display: block;
+    padding: 0;
+    border: none;
+    white-space: normal;
+    font-size: 0.74rem;
+    line-height: 1.3;
+    color: var(--ink-2);
+  }
+  .catalogue-table td:first-child {
+    grid-column: 1;
+    font-weight: 700;
+    font-size: 0.78rem;
+    color: var(--ink);
+    font-family: var(--font-mono);
+  }
+  .catalogue-table td:last-child {
+    grid-column: 2;
+    text-align: right;
+    font-weight: 700;
+    font-size: 0.78rem;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  .catalogue-table td:first-child:last-child {
+    grid-column: 1 / -1;
+  }
+  .catalogue-table td:not(:first-child):not(:last-child) {
+    grid-column: 1 / -1;
+    font-size: 0.68rem;
+    color: var(--ink-3);
+    line-height: 1.3;
+  }
+  .catalogue-table .cat-label {
+    font-size: 0.66rem;
+    color: var(--ink-3);
+    display: block;
+    margin-top: 0.1rem;
+  }
+  .catalogue-table .cat-size span.cat-label {
+    font-weight: 400;
+  }
+  .catalogue-table strong {
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  /* Homepage spec table — on mobile only show the three headline rows
+     (Plasterboard, Metal C-studs, Timber studs). The full breakdown is
+     for desktop where there's room for the four columns. */
+  .spec-table { display: block; }
+  .spec-table thead { display: none; }
+  .spec-table tbody, .spec-table tr { display: block; }
+  .spec-table tr:nth-child(n+4) { display: none; }
+  .spec-table tr {
+    padding: 0.65rem 0.85rem;
+    background: var(--paper);
+    border: 1px solid var(--paper-3);
+    border-left: 3px solid var(--ink);
+    margin: 0 0 0.55rem;
+  }
+  .spec-table td {
+    display: block;
+    padding: 0;
+    border: none;
+    white-space: normal;
+    font-size: 0.85rem;
+    line-height: 1.45;
+    color: var(--ink-2);
+  }
+  .spec-table td:nth-child(3) { display: none; }
+  .spec-table td:first-child {
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.005em;
+  }
+  .spec-table td:nth-child(2) {
+    font-family: var(--font-mono);
+    font-size: 0.76rem;
+    color: var(--ink);
+    background: var(--paper-2);
+    border-left: 2px solid var(--redline);
+    padding: 0.45rem 0.6rem;
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+  }
+  .spec-table td:nth-child(4) {
+    font-size: 0.85rem;
+    color: var(--ink-3);
+    line-height: 1.45;
   }
   .results-header { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
 
