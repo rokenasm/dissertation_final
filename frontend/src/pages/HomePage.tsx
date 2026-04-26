@@ -152,7 +152,7 @@ export default function HomePage() {
           <p className="spec-lead">
             Metal-frame calculations follow British Gypsum GypWall Single
             Frame (A206001); timber-frame follows UK domestic convention
-            (38 × 89 mm CLS at 400 mm centres). Every price is editable and
+            (38 × 89 mm CLS at 600 mm centres). Every price is editable and
             tied to a UK merchant source.
           </p>
         </div>
@@ -169,7 +169,7 @@ export default function HomePage() {
           <tbody>
             <tr>
               <td>Plasterboard</td>
-              <td>Boarded area ÷ 2.88 m² × sides × layers</td>
+              <td>(Boarded area × sides × layers) ÷ 2.88 m² per sheet</td>
               <td>10%</td>
               <td>5 board types, Gyproc or Knauf</td>
             </tr>
@@ -181,7 +181,7 @@ export default function HomePage() {
             </tr>
             <tr>
               <td>Timber studs</td>
-              <td>Wall length ÷ 400 mm + end studs + mid-height noggins</td>
+              <td>Wall length ÷ spacing (300 or 600 mm) + end studs + mid-height noggins</td>
               <td>10%</td>
               <td>38 × 63 or 38 × 89 CLS C16, 3 m lengths</td>
             </tr>
@@ -242,9 +242,9 @@ export default function HomePage() {
           <div className="story-teaser-text">
             <p className="story-teaser-kicker">Before this was a dissertation, I was a labourer.</p>
             <p className="story-teaser-body">
-              I carried boards. I watched estimators work off Excel sheets
-              that nobody owned, pricing jobs that went over budget because
-              of one wrong cell. RMBuild is the tool I wish they'd had.
+              I watched estimators work off Excel sheets that nobody owned,
+              pricing jobs that went over budget because of one wrong cell.
+              RMBuild is the tool I wish they'd had.
             </p>
             <div className="story-teaser-ctas">
               <Link to="/about" className="btn btn-text">Read the full story →</Link>
