@@ -668,6 +668,7 @@ export default function ResultsTable({
         </div>
       </div>
 
+      <div className="results-table-wrap">
       <table className="results-table">
         <thead>
           <tr>
@@ -737,6 +738,7 @@ export default function ResultsTable({
           </tr>
         </tfoot>
       </table>
+      </div>
       <p className="results-note">
         Quantities include waste and are rounded up to whole purchasable units.
         Prices are indicative UK trade rates — edit any to match your merchant's quote.

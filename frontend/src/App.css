@@ -2861,6 +2861,11 @@ input[type="checkbox"] {
   letter-spacing: -0.005em;
 }
 
+.results-table-wrap {
+  overflow-x: auto;
+  width: 100%;
+}
+
 .price-cell {
   white-space: nowrap;
   min-width: 150px;
