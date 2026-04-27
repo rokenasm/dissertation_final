@@ -2863,12 +2863,15 @@ input[type="checkbox"] {
 
 .price-cell {
   white-space: nowrap;
+  min-width: 150px;
 }
 
 .price-input-wrap {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  flex-wrap: nowrap;
+  gap: 0.35rem;
+  white-space: nowrap;
 }
 
 .currency {
